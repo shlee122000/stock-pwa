@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1e3a5f">
+  <meta name="description" content="AI 기반 주식 분석 프로그램">
+  <link rel="manifest" href="/manifest.json">
+  <title>📈 AI 주식 분석</title>
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- 사이드바 -->
+    <aside class="sidebar">
+      <div class="logo">
+        <h1>📈 AI 주식분석</h1>
+      </div>
+      
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="dashboard">🏠 대시보드</button>
+        <button class="nav-item" data-tab="search">🔍 종목 검색</button>
+        <button class="nav-item" data-tab="theme">🎯 테마 분석</button>
+        <button class="nav-item" data-tab="stock-finder">🔍 종목 찾기</button>
+        <button class="nav-item" data-tab="analysis">📊 기술적 분석</button>
+        <button class="nav-item" data-tab="signals">🚦 매매 신호</button>
+        <button class="nav-item" data-tab="watchlist">⭐ 관심 종목</button>
+        <button class="nav-item" data-tab="us-stock">🇺🇸 미국 주식</button>
+        <button class="nav-item" data-tab="portfolio">💼 내 포트폴리오</button>
+        <button class="nav-item" data-tab="us-stock-finder">🔍 미국 종목 찾기</button>
+        <button class="nav-item" data-tab="ai-lesson">🤖 AI 레슨</button>
+      </nav>
+      
+     <!-- 환율 정보 (사이드바) -->
+      <div class="exchange-rate-box">
+        <h4>💱 환율</h4>
+        <div id="exchange-rate-info">
+          <p>로딩 중...</p>
+        </div>
+      </div>
+      
+      <!-- 모바일 메뉴 버튼 -->
+      <button class="mobile-menu-btn" id="mobile-menu-btn">☰</button>
+    </aside>
+    
+    <!-- 메인 컨텐츠 -->
+    <main class="main-content">
+      
+      <!-- 대시보드 -->
+      <section id="tab-dashboard" class="tab-content active">
+        <h2>🏠 대시보드</h2>
+        <div class="dashboard-grid">
+          
+          <div class="card">
+            <h3>📊 오늘의 시장</h3>
+            <div id="market-summary">로딩 중...</div>
+          </div>
+          
+          <div class="card">
+            <h3>💰 내 포트폴리오 요약</h3>
+            <div id="dashboard-portfolio-summary">
+              <p>로딩 중...</p>
+            </div>
+          </div>
+          
+          <div class="card">
+            <h3>🔔 알림 현황</h3>
+            <div id="dashboard-alert-summary">
+              <p>로딩 중...</p>
+            </div>
+          </div>
+          
+          <div class="card dashboard-exchange-card">
+            <h3>💱 환율 정보</h3>
+            <div id="dashboard-exchange-rate">
+              <p>로딩 중...</p>
+            </div>
+          </div>
+          
+          <div class="card">
+            <h3>🔥 추천 종목</h3>
+            <div id="recommended-stocks">로딩 중...</div>
+          </div>
+          
+          <div class="card">
+            <h3>📰 주요 뉴스</h3>
+            <div id="main-news">로딩 중...</div>
+          </div>
+          
+        </div>
+      </section>
+      <!-- 종목 검색 -->
+      <section id="tab-search" class="tab-content">
+        <h2>🔍 종목 검색</h2>
+        <div class="search-box">
+          <input type="text" id="stock-search-input" placeholder="종목명 또는 코드 입력">
+          <button id="stock-search-btn">검색</button>
+        </div>
+        <div id="search-result" class="result-area"></div>
+      </section>
+      
+      <!-- 테마 분석 -->
+      <section id="tab-theme" class="tab-content">
+        <h2>🎯 테마 분석</h2>
+        <div class="card" style="margin-bottom:20px;">
+          <h3>📋 테마 목록</h3>
+          <button id="load-theme-btn">테마 목록 불러오기</button>
+          <div id="theme-list-container" style="max-height:300px; overflow-y:auto; margin-top:15px;">
+            <p>테마 목록을 불러와 주세요.</p>
+          </div>
+        </div>
+        <div class="card" id="theme-stocks-card" style="display:none;">
+          <h3>📈 <span id="selected-theme-name">테마</span> 종목</h3>
+          <div id="theme-stocks-container"></div>
+        </div>
+        <div class="card" id="theme-analysis-card" style="display:none; margin-top:20px;">
+          <h3>🏆 종목 순위 (점수 기준)</h3>
+          <div id="theme-analysis-result"></div>
+        </div>
+      </section>
+      
+      <!-- 기술적 분석 -->
+      <section id="tab-analysis" class="tab-content">
+        <h2>📊 기술적 분석</h2>
+        <div class="search-box">
+          <input type="text" id="analysis-stock-code" placeholder="종목코드 입력 (예: 005930)">
+          <button id="run-analysis-btn">분석 시작</button>
+          <button id="news-btn" class="btn-secondary">📰 뉴스</button>
+        </div>
+        <div class="card" style="margin-top:20px;">
+          <h3>📈 주가 차트</h3>
+          <div class="chart-container">
+            <canvas id="stock-chart"></canvas>
+          </div>
+        </div>
+        <div id="analysis-result" class="result-area"></div>
+        <div class="card" id="news-card" style="margin-top:20px; display:none;">
+          <h3>📰 관련 뉴스</h3>
+          <div id="news-result"></div>
+        </div>
+      </section>
+      
+      <!-- 매매 신호 -->
+      <section id="tab-signals" class="tab-content">
+        <h2>🚦 매매 신호</h2>
+        <div class="search-box">
+          <input type="text" id="signal-stock-code" placeholder="종목코드 입력 (예: 005930)">
+          <button id="generate-signal-btn">신호 생성</button>
+          <button id="recommendation-btn" class="btn-success">💰 매매점 추천</button>
+        </div>
+        <div id="signal-result" class="result-area"></div>
+        <div id="signal-recommendation-result" class="result-area" style="margin-top:20px;"></div>
+      </section>
+      
+      <!-- 관심 종목 -->
+      <section id="tab-watchlist" class="tab-content">
+        <h2>⭐ 관심 종목</h2>
+        <h3>🇰🇷 한국 주식</h3>
+        <div class="search-box">
+          <input type="text" id="watchlist-add-code" placeholder="종목코드 입력 (예: 005930)">
+          <button id="watchlist-add-btn">추가</button>
+        </div>
+        <div id="watchlist-container" class="result-area" style="margin-bottom:30px;">
+          <p>관심 종목이 없습니다.</p>
+        </div>
+        <h3>🇺🇸 미국 주식</h3>
+        <div id="us-watchlist-container" class="result-area">
+          <p>관심 종목이 없습니다.</p>
+        </div>
+      </section>
+      
+      <!-- 미국 주식 -->
+      <section id="tab-us-stock" class="tab-content">
+        <h2>🇺🇸 미국 주식</h2>
+        <div class="search-box">
+          <input type="text" id="us-stock-input" placeholder="종목명 또는 심볼 (예: AAPL, TSLA)">
+          <button id="us-stock-search-btn">검색</button>
+        </div>
+        <div id="us-search-results" class="result-area" style="margin-bottom:20px;"></div>
+        <div class="card" id="us-chart-card" style="display:none;">
+          <h3>📈 주가 차트</h3>
+          <div class="chart-container">
+            <canvas id="us-stock-chart"></canvas>
+          </div>
+        </div>
+        <div id="us-stock-result" class="result-area"></div>
+        <div id="us-watchlist-btn-area" style="margin-top:15px; display:none;">
+          <button id="add-us-watchlist-btn" class="btn-warning">⭐ 관심 종목에 추가</button>
+          <button id="us-analysis-btn" class="btn-primary">📊 기술적 분석</button>
+          <button id="us-signal-btn" class="btn-success">🚦 매매 신호</button>
+        </div>
+        <div id="us-analysis-result" class="result-area" style="margin-top:20px;"></div>
+      
+        
+        <!-- 미국 AI 기능 -->
+        <div class="card" style="margin-top:20px;">
+          <h3>🤖 미국 주식 AI 분석</h3>
+          <p style="color:#666; margin-bottom:15px;">AI가 매매 타이밍, 리스크, 차트 패턴을 분석합니다</p>
+          
+          <div class="search-box" style="margin-bottom:15px;">
+            <input type="text" id="us-ai-input" placeholder="심볼 입력 (예: AAPL, TSLA)">
+          </div>
+          
+          <div style="display:flex; flex-wrap:wrap; gap:10px;">
+            <button id="us-ai-timing-btn" class="btn-primary">⏰ 매매 타이밍</button>
+            <button id="us-ai-risk-btn" class="btn-primary">⚠️ 리스크 분석</button>
+            <button id="us-ai-pattern-btn" class="btn-primary">📈 차트 패턴</button>
+            <button id="us-ai-sentiment-btn" class="btn-primary">📰 뉴스 감성</button>
+          </div>
+          
+          <div id="us-ai-result" style="margin-top:15px;"></div>
+        </div>
+        
+        <!-- 미국 AI 포트폴리오 -->
+        <div class="card" style="margin-top:20px;">
+          <h3>💼 미국 AI 포트폴리오 추천</h3>
+          <p style="color:#666; margin-bottom:15px;">종목 간 상관관계를 분석하여 최적의 투자 비중을 계산합니다</p>
+          
+          <div style="margin-bottom:15px;">
+            <div class="search-box">
+              <input type="text" id="us-ai-portfolio-input" placeholder="심볼 입력 (예: AAPL)">
+              <button id="us-ai-portfolio-add-btn" class="btn-secondary">종목 추가</button>
+            </div>
+            <div id="us-ai-portfolio-list" style="margin-top:10px;"></div>
+          </div>
+          
+          <div style="margin-bottom:15px;">
+            <label style="margin-right:10px;">총 투자금액:</label>
+            <input type="number" id="us-ai-portfolio-amount" placeholder="10000" style="width:120px;"> 달러
+            <button id="us-ai-portfolio-analyze-btn" class="btn-primary" style="margin-left:15px;">최적 비중 분석</button>
+          </div>
+          
+          <div id="us-ai-portfolio-result" style="margin-top:15px;"></div>
+        </div>
+      </section>
+      
+      
+      <!-- 내 포트폴리오 -->
+      <section id="tab-portfolio" class="tab-content">
+        <h2>💼 내 포트폴리오</h2>
+        <div class="card">
+          <h3>📝 보유 주식 등록</h3>
+          <div class="search-box">
+            <input type="text" id="portfolio-code" placeholder="종목코드 또는 종목명">
+            <input type="number" id="portfolio-qty" placeholder="수량">
+            <input type="number" id="portfolio-price" placeholder="매수가">
+            <button id="portfolio-add-btn">등록</button>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-top:20px;">
+          <h3>📊 보유 현황</h3>
+          <div id="portfolio-list">
+            <p>등록된 주식이 없습니다.</p>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-top:20px;">
+          <h3>💰 총 평가</h3>
+          <div id="portfolio-summary">
+            <p>--</p>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-top:20px;">
+          <h3>🎯 매도 알림 설정</h3>
+          <div style="margin-bottom:15px; padding:10px; background:#f0f9ff; border-radius:8px; font-size:0.9rem;">
+            <p style="margin:0 0 5px 0;"><strong>📌 알림 조건 색상 안내:</strong></p>
+            <p style="margin:0;">🎯 <span style="color:#16a34a;">초록색</span> = 목표가 (이 가격 도달 시 수익 실현 매도)</p>
+            <p style="margin:0;">🛑 <span style="color:#dc2626;">빨간색</span> = 손절가 (이 가격 도달 시 손실 제한 매도)</p>
+          </div>
+          <div class="search-box">
+            <select id="alert-stock-select">
+              <option value="">-- 보유 종목 선택 --</option>
+            </select>
+            <select id="alert-type">
+              <option value="percent">수익률 기준</option>
+              <option value="price">가격 기준</option>
+              <option value="auto">기술적 분석 (자동)</option>
+            </select>
+            <button id="set-alert-btn">알림 설정</button>
+          </div>
+          <div id="alert-options" style="margin-top:15px;">
+            <div id="percent-options">
+              <label><input type="checkbox" value="5"> 5% 수익</label>
+              <label><input type="checkbox" value="10"> 10% 수익</label>
+              <label><input type="checkbox" value="20"> 20% 수익</label>
+              <label><input type="checkbox" value="30"> 30% 수익</label>
+              <label><input type="checkbox" value="-5"> -5% 손절</label>
+              <label><input type="checkbox" value="-10"> -10% 손절</label>
+            </div>
+            <div id="price-options" style="display:none;">
+              <input type="number" id="alert-target-price" placeholder="목표 매도가">
+              <input type="number" id="alert-stop-price" placeholder="손절가">
+            </div>
+          </div>
+          <div style="margin-top:15px; padding-top:15px; border-top:1px solid #eee;">
+            <p style="margin-bottom:10px;"><strong>📋 일괄 설정</strong></p>
+            <button id="set-all-alert-btn" class="btn-primary">🔔 기술적 분석 일괄</button>
+            <button id="set-all-percent-btn" class="btn-success">📊 수익률 일괄</button>
+            <div id="bulk-percent-options" style="display:none; margin-top:10px; padding:10px; background:#f0f9ff; border-radius:8px;">
+              <p style="margin:0 0 10px 0;">일괄 적용할 수익률 선택:</p>
+              <label><input type="checkbox" class="bulk-percent" value="5"> 5% 수익</label>
+              <label><input type="checkbox" class="bulk-percent" value="10"> 10% 수익</label>
+              <label><input type="checkbox" class="bulk-percent" value="20"> 20% 수익</label>
+              <label><input type="checkbox" class="bulk-percent" value="-5"> -5% 손절</label>
+              <label><input type="checkbox" class="bulk-percent" value="-10"> -10% 손절</label>
+              <br><button id="apply-bulk-percent-btn" class="btn-primary" style="margin-top:10px;">적용</button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-top:20px;">
+          <h3>🔔 알림 목록</h3>
+          <div id="alert-list-container">
+            <p>설정된 알림이 없습니다.</p>
+          </div>
+          <div style="margin-top:15px;">
+            <div style="margin-top:15px;">
+            <select id="monitor-interval">
+              <option value="1">1분</option>
+              <option value="5">5분</option>
+              <option value="10" selected>10분</option>
+              <option value="30">30분</option>
+              <option value="60">1시간</option>
+            </select>
+            <button id="start-monitor-btn" class="btn-success">▶ 모니터링 시작</button>
+            <button id="stop-monitor-btn" class="btn-danger" style="display:none;">⏹ 모니터링 중지</button>
+            <span id="monitor-status" style="margin-left:15px; color:#666;"></span>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:30px; border-top:3px solid #3b82f6;">
+          <h3>🇺🇸 미국 주식 포트폴리오</h3>
+          <div class="search-box">
+            <input type="text" id="us-portfolio-symbol" placeholder="심볼 (예: AAPL, TSLA)">
+            <input type="number" id="us-portfolio-qty" placeholder="수량">
+            <input type="number" id="us-portfolio-price" placeholder="매수가 ($)" step="0.01">
+            <button id="us-portfolio-add-btn">등록</button>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-top:20px;">
+          <h3>📊 미국 주식 보유 현황</h3>
+          <div id="us-portfolio-list">
+            <p>등록된 미국 주식이 없습니다.</p>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-top:20px;">
+          <h3>💰 미국 주식 총 평가</h3>
+          <div id="us-portfolio-summary">
+            <p>--</p>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-top:20px;">
+          <h3>🎯 미국 주식 매도 알림 설정</h3>
+          <div style="margin-bottom:15px; padding:10px; background:#f0f9ff; border-radius:8px; font-size:0.9rem;">
+            <p style="margin:0 0 5px 0;"><strong>📌 알림 조건 색상 안내:</strong></p>
+            <p style="margin:0;">🎯 <span style="color:#16a34a;">초록색</span> = 목표가 (이 가격 도달 시 수익 실현 매도)</p>
+            <p style="margin:0;">🛑 <span style="color:#dc2626;">빨간색</span> = 손절가 (이 가격 도달 시 손실 제한 매도)</p>
+          </div>
+          <div class="search-box">
+            <select id="us-alert-stock-select">
+              <option value="">-- 보유 종목 선택 --</option>
+            </select>
+            <select id="us-alert-type">
+              <option value="percent">수익률 기준</option>
+              <option value="price">가격 기준</option>
+              <option value="auto">기술적 분석 (자동)</option>
+            </select>
+            <button id="us-set-alert-btn">알림 설정</button>
+          </div>
+          <div id="us-alert-options" style="margin-top:15px;">
+            <div id="us-percent-options">
+              <label><input type="checkbox" value="5"> 5% 수익</label>
+              <label><input type="checkbox" value="10"> 10% 수익</label>
+              <label><input type="checkbox" value="20"> 20% 수익</label>
+              <label><input type="checkbox" value="30"> 30% 수익</label>
+              <label><input type="checkbox" value="-5"> -5% 손절</label>
+              <label><input type="checkbox" value="-10"> -10% 손절</label>
+            </div>
+            <div id="us-price-options" style="display:none;">
+              <input type="number" id="us-alert-target-price" placeholder="목표 매도가 ($)" step="0.01">
+              <input type="number" id="us-alert-stop-price" placeholder="손절가 ($)" step="0.01">
+            </div>
+          </div>
+          <div style="margin-top:15px; padding-top:15px; border-top:1px solid #eee;">
+            <p style="margin-bottom:10px;"><strong>📋 일괄 설정</strong></p>
+            <button id="us-set-all-alert-btn" class="btn-primary">🔔 기술적 분석 일괄</button>
+            <button id="us-set-all-percent-btn" class="btn-success">📊 수익률 일괄</button>
+            <div id="us-bulk-percent-options" style="display:none; margin-top:10px; padding:10px; background:#f0f9ff; border-radius:8px;">
+              <p style="margin:0 0 10px 0;">일괄 적용할 수익률 선택:</p>
+              <label><input type="checkbox" class="us-bulk-percent" value="5"> 5% 수익</label>
+              <label><input type="checkbox" class="us-bulk-percent" value="10"> 10% 수익</label>
+              <label><input type="checkbox" class="us-bulk-percent" value="20"> 20% 수익</label>
+              <label><input type="checkbox" class="us-bulk-percent" value="-5"> -5% 손절</label>
+              <label><input type="checkbox" class="us-bulk-percent" value="-10"> -10% 손절</label>
+              <br><button id="us-apply-bulk-percent-btn" class="btn-primary" style="margin-top:10px;">적용</button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-top:20px;">
+          <h3>🔔 미국 주식 알림 목록</h3>
+          <div id="us-alert-list-container">
+            <p>설정된 알림이 없습니다.</p>
+          </div>
+          <div style="margin-top:15px;">
+            <select id="us-monitor-interval">
+              <option value="1">1분</option>
+              <option value="5">5분</option>
+              <option value="10" selected>10분</option>
+              <option value="30">30분</option>
+              <option value="60">1시간</option>
+            </select>
+            <button id="us-start-monitor-btn" class="btn-success">▶ 모니터링 시작</button>
+            <button id="us-stop-monitor-btn" class="btn-danger" style="display:none;">⏹ 모니터링 중지</button>
+            <span id="us-monitor-status" style="margin-left:15px; color:#666;"></span>
+          </div>
+        </div>
+      </section>
+      
+
+
+      <!-- 종목 찾기 -->
+      <section id="tab-stock-finder" class="tab-content">
+        <h2>🔍 매수 종목 찾기</h2>
+        
+        <div class="card">
+          <h3>🔥 Hot 테마 TOP 10</h3>
+          <p style="color:#666; margin-bottom:15px;">오늘 가장 상승률이 높은 테마입니다.</p>
+          <button id="load-hot-themes-btn" class="btn-primary">Hot 테마 불러오기</button>
+          <div id="hot-themes-container" style="margin-top:15px;"></div>
+        </div>
+        
+        <div class="card" style="margin-top:20px;">
+          <h3>📊 테마별 추천 종목</h3>
+          <p style="color:#666; margin-bottom:15px;">선택한 테마에서 기술적으로 유망한 종목 TOP 3</p>
+          <div class="search-box">
+            <select id="theme-select-for-analysis">
+              <option value="">-- 테마 선택 --</option>
+            </select>
+            <button id="analyze-theme-btn">분석하기</button>
+          </div>
+          <div id="theme-recommendation-container" style="margin-top:15px;"></div>
+        </div>
+        
+        <div class="card" style="margin-top:20px;">
+          <h3>⭐ 전체 테마 스캔</h3>
+          <p style="color:#666; margin-bottom:15px;">모든 테마를 분석하여 매수 적합 종목을 찾습니다. (시간이 걸릴 수 있습니다)</p>
+          <button id="scan-all-themes-btn" class="btn-success">전체 테마 스캔 시작</button>
+          <div id="scan-result-container" style="margin-top:15px;"></div>
+        </div>
+      </section>
+
+      <!-- 미국 종목 찾기 -->
+      <section id="tab-us-stock-finder" class="tab-content">
+        <h2>🔍 미국 매수 종목 찾기</h2>
+        
+        <div class="card">
+          <h3>🔥 인기 종목 분석</h3>
+          <p style="color:#666; margin-bottom:15px;">미국 시장 대표 인기 종목들의 기술적 분석</p>
+          <button id="load-popular-us-btn" class="btn-primary">인기 종목 불러오기</button>
+          <div id="popular-us-container" style="margin-top:15px;"></div>
+        </div>
+        
+        <div class="card" style="margin-top:20px;">
+          <h3>📊 섹터별 추천 종목</h3>
+          <p style="color:#666; margin-bottom:15px;">선택한 섹터에서 기술적으로 유망한 종목</p>
+          <div class="search-box">
+            <select id="us-sector-select">
+              <option value="">-- 섹터 선택 --</option>
+              <option value="tech">🖥️ 기술 (Technology)</option>
+              <option value="healthcare">🏥 헬스케어 (Healthcare)</option>
+              <option value="finance">🏦 금융 (Finance)</option>
+              <option value="consumer">🛒 소비재 (Consumer)</option>
+              <option value="energy">⚡ 에너지 (Energy)</option>
+              <option value="industrial">🏭 산업재 (Industrial)</option>
+            </select>
+            <button id="analyze-us-sector-btn">분석하기</button>
+          </div>
+          <div id="us-sector-result-container" style="margin-top:15px;"></div>
+        </div>
+        
+        <div class="card" style="margin-top:20px;">
+          <h3>⭐ 전체 섹터 스캔</h3>
+          <p style="color:#666; margin-bottom:15px;">모든 섹터를 분석하여 매수 적합 종목을 찾습니다.</p>
+          <button id="scan-all-us-sectors-btn" class="btn-success">전체 섹터 스캔 시작</button>
+          <div id="us-scan-result-container" style="margin-top:15px;"></div>
+        </div>
+      </section>
+
+      <!-- AI 원포인트 레슨 -->
+      <section id="tab-ai-lesson" class="tab-content">
+        <h2>🤖 AI 원포인트 레슨</h2>
+        <p style="color:#666; margin-bottom:20px;">AI가 시가총액별, 테마별로 종목을 분석하여 객관적인 점수를 제공합니다</p>
+        
+        <!-- 시가총액별 TOP 10 -->
+        <div class="card">
+          <h3>📊 시가총액별 TOP 10</h3>
+          <p style="color:#666; margin-bottom:15px;">시가총액 규모별로 기술적 분석 점수가 높은 종목</p>
+          <div style="margin-bottom:15px;">
+            <button id="ai-large-cap-btn" class="btn-primary">🏢 대형주</button>
+            <button id="ai-mid-cap-btn" class="btn-secondary">🏠 중형주</button>
+            <button id="ai-small-cap-btn" class="btn-secondary">🏪 소형주</button>
+          </div>
+          <div id="ai-cap-result-container"></div>
+        </div>
+        
+        <!-- 테마별 TOP 10 -->
+        <div class="card" style="margin-top:20px;">
+          <h3>🎯 테마별 TOP 10</h3>
+          <p style="color:#666; margin-bottom:15px;">선택한 테마 내에서 기술적 분석 점수가 높은 종목</p>
+          <div class="search-box">
+            <select id="ai-theme-select">
+              <option value="">-- 테마 선택 --</option>
+            </select>
+            <button id="ai-theme-analyze-btn">분석하기</button>
+          </div>
+          <div id="ai-theme-result-container" style="margin-top:15px;"></div>
+        </div>
+        
+
+        <!-- 직접 검색 -->
+        <div class="card" style="margin-top:20px;">
+          <h3>🔍 직접 검색</h3>
+          <div class="search-box">
+            <input type="text" id="ai-stock-input" placeholder="종목명 또는 종목코드 입력">
+            <button id="ai-analyze-btn">AI 분석</button>
+          </div>
+        </div>
+        
+        <!-- AI 매매 타이밍 -->
+        <div class="card" style="margin-top:20px;">
+          <h3>⏰ AI 매매 타이밍</h3>
+          <p style="color:#666; margin-bottom:15px;">골든크로스, RSI, MACD 등 복합 신호로 최적의 매수/매도 타이밍을 분석합니다</p>
+          <div class="search-box">
+            <input type="text" id="ai-timing-input" placeholder="종목명 또는 종목코드 입력">
+            <button id="ai-timing-btn" class="btn-primary">타이밍 분석</button>
+          </div>
+          <div id="ai-timing-result" style="margin-top:15px;"></div>
+        </div>
+        
+        <!-- AI 리스크 분석 -->
+        <div class="card" style="margin-top:20px;">
+          <h3>⚠️ AI 리스크 분석</h3>
+          <p style="color:#666; margin-bottom:15px;">변동성 기반 최대 예상 손실(VaR)과 손절가를 계산합니다</p>
+          <div class="search-box">
+            <input type="text" id="ai-risk-input" placeholder="종목명 또는 종목코드 입력">
+            <button id="ai-risk-btn" class="btn-primary">리스크 분석</button>
+          </div>
+          <div id="ai-risk-result" style="margin-top:15px;"></div>
+        </div>
+        
+
+        <!-- AI 차트 패턴 -->
+        <div class="card" style="margin-top:20px;">
+          <h3>📈 AI 차트 패턴</h3>
+          <p style="color:#666; margin-bottom:15px;">삼중바닥, 헤드앤숄더, 삼각수렴 등 차트 패턴을 자동 인식합니다</p>
+          <div class="search-box">
+            <input type="text" id="ai-pattern-input" placeholder="종목명 또는 종목코드 입력">
+            <button id="ai-pattern-btn" class="btn-primary">패턴 분석</button>
+          </div>
+          <div id="ai-pattern-result" style="margin-top:15px;"></div>
+        </div>
+        
+        <!-- AI 포트폴리오 추천 -->
+        <div class="card" style="margin-top:20px;">
+          <h3>💼 AI 포트폴리오 추천</h3>
+          <p style="color:#666; margin-bottom:15px;">종목 간 상관관계를 분석하여 최적의 투자 비중을 계산합니다</p>
+          <div style="margin-bottom:15px;">
+            <div class="search-box">
+              <input type="text" id="ai-portfolio-input" placeholder="종목명 또는 종목코드 입력">
+              <button id="ai-portfolio-add-btn" class="btn-secondary">종목 추가</button>
+            </div>
+            <div id="ai-portfolio-list" style="margin-top:10px;"></div>
+          </div>
+          <div style="margin-bottom:15px;">
+            <label style="margin-right:10px;">총 투자금액:</label>
+            <input type="number" id="ai-portfolio-amount" placeholder="1000" style="width:120px;"> 만원
+            <button id="ai-portfolio-analyze-btn" class="btn-primary" style="margin-left:15px;">최적 비중 분석</button>
+          </div>
+         <div id="ai-portfolio-result" style="margin-top:15px;"></div>
+        </div>
+        
+        <!-- AI 뉴스 감성 분석 -->
+        <div class="card" style="margin-top:20px;">
+          <h3>📰 AI 뉴스 감성 분석</h3>
+          <p style="color:#666; margin-bottom:15px;">최근 뉴스를 분석하여 긍정/부정/중립 감성을 판단합니다</p>
+          <div class="search-box">
+            <input type="text" id="ai-sentiment-input" placeholder="종목명 또는 종목코드 입력">
+            <button id="ai-sentiment-btn" class="btn-primary">감성 분석</button>
+          </div>
+          <div id="ai-sentiment-result" style="margin-top:15px;"></div>
+        </div>
+        
+        
+
+        
+        <!-- 상세 분석 결과 -->
+        <div id="ai-detail-container" style="margin-top:20px;"></div>
+      </section>
+
+    </main>
+  </div>
+  
+
+
+  <!-- 로딩 오버레이 -->
+  <div id="loading-overlay" class="loading-overlay" style="display:none;">
+    <div class="loading-spinner"></div>
+    <p>로딩 중...</p>
+  </div>
+  
+  <!-- JavaScript -->
+  <script src="/js/app.js?v=29"></script>
+
+  
+  <script>
+  // PWA 서비스 워커 등록
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(function(registration) {
+          console.log('ServiceWorker 등록 성공:', registration.scope);
+        })
+        .catch(function(error) {
+          console.log('ServiceWorker 등록 실패:', error);
+        });
+    });
+  }
+</script>
+
+
+</body>
+</html>

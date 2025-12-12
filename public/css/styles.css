@@ -1,0 +1,458 @@
+/* 기본 설정 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f0f2f5;
+  color: #333;
+}
+
+/* 앱 컨테이너 */
+.app-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* 사이드바 */
+.sidebar {
+  width: 250px;
+  background: linear-gradient(180deg, #1e3a5f 0%, #2d5a87 100%);
+  color: white;
+  padding: 20px;
+  position: fixed;
+  height: 100vh;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.logo h1 {
+  font-size: 1.3rem;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.nav-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.nav-item {
+  background: transparent;
+  border: none;
+  color: white;
+  padding: 12px 15px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+
+.nav-item:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.nav-item.active {
+  background: rgba(255,255,255,0.2);
+  font-weight: 600;
+}
+
+/* 환율 박스 */
+.exchange-rate-box {
+  margin-top: 30px;
+  padding: 15px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 8px;
+}
+
+.exchange-rate-box h4 {
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+  color: #94a3b8;
+}
+
+.exchange-rate-box p {
+  font-size: 0.85rem;
+  margin: 5px 0;
+}
+
+.rate-value {
+  font-weight: 700;
+  color: #60a5fa;
+}
+
+/* 메인 컨텐츠 */
+.main-content {
+  flex: 1;
+  margin-left: 250px;
+  padding: 30px;
+  min-height: 100vh;
+}
+
+/* 탭 컨텐츠 */
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.tab-content h2 {
+  margin-bottom: 20px;
+  color: #1e3a5f;
+}
+
+/* 카드 */
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom: 20px;
+}
+
+.card h3 {
+  margin-bottom: 15px;
+  color: #1e3a5f;
+  font-size: 1.1rem;
+}
+
+/* 검색 박스 */
+.search-box {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.search-box input {
+  flex: 1;
+  min-width: 200px;
+  padding: 12px 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.search-box button,
+button {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.search-box button,
+.btn-primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.search-box button:hover,
+.btn-primary:hover {
+  background: #2563eb;
+}
+
+.btn-secondary {
+  background: #8b5cf6;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #7c3aed;
+}
+
+.btn-success {
+  background: #10b981;
+  color: white;
+}
+
+.btn-success:hover {
+  background: #059669;
+}
+
+.btn-warning {
+  background: #f59e0b;
+  color: white;
+}
+
+.btn-warning:hover {
+  background: #d97706;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+}
+
+/* 결과 영역 */
+.result-area {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* 차트 컨테이너 */
+.chart-container {
+  height: 350px;
+  position: relative;
+}
+
+/* 대시보드 그리드 */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+/* 포트폴리오 폼 */
+.portfolio-form {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.portfolio-form input {
+  flex: 1;
+  min-width: 100px;
+  padding: 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+/* 인디케이터 그리드 */
+.indicators-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.indicator-card {
+  background: #f8fafc;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.indicator-card .label {
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.indicator-card .value {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #1e3a5f;
+}
+
+/* 색상 클래스 */
+.positive {
+  color: #ef4444 !important;
+}
+
+.negative {
+  color: #3b82f6 !important;
+}
+
+/* 로딩 오버레이 */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255,255,255,0.9);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #e0e0e0;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 테이블 스타일 */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+th {
+  background: #f8fafc;
+  font-weight: 600;
+  color: #1e3a5f;
+}
+
+tr:hover {
+  background: #f8fafc;
+}
+
+/* 모바일 메뉴 버튼 */
+.mobile-menu-btn {
+  display: none;
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  z-index: 200;
+  background: #1e3a5f;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 8px;
+  font-size: 1.2rem;
+}
+
+/* ========== 반응형 (모바일) ========== */
+@media (max-width: 768px) {
+  /* 사이드바 숨김 */
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  
+  /* 메인 컨텐츠 전체 너비 */
+  .main-content {
+    margin-left: 0;
+    padding: 70px 15px 30px;
+  }
+  
+  /* 모바일 메뉴 버튼 표시 */
+  .mobile-menu-btn {
+    display: block;
+  }
+  
+  /* 검색 박스 */
+  .search-box {
+    flex-direction: column;
+  }
+  
+  .search-box input {
+    min-width: 100%;
+  }
+  
+  .search-box button {
+    width: 100%;
+  }
+  
+  /* 포트폴리오 폼 */
+  .portfolio-form {
+    flex-direction: column;
+  }
+  
+  .portfolio-form input,
+  .portfolio-form button {
+    width: 100%;
+  }
+  
+  /* 대시보드 그리드 */
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  /* 인디케이터 그리드 */
+  .indicators-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  /* 차트 높이 조정 */
+  .chart-container {
+    height: 250px;
+  }
+  
+  /* 카드 패딩 조정 */
+  .card {
+    padding: 15px;
+  }
+  
+  /* 테이블 스크롤 */
+  .result-area {
+    overflow-x: auto;
+  }
+  
+  table {
+    min-width: 500px;
+  }
+  
+  /* 탭 제목 */
+  .tab-content h2 {
+    font-size: 1.3rem;
+  }
+}
+
+/* 더 작은 화면 */
+@media (max-width: 480px) {
+  .indicators-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .indicator-card .value {
+    font-size: 1.1rem;
+  }
+  
+  .logo h1 {
+    font-size: 1.1rem;
+  }
+  
+  .nav-item {
+    padding: 10px 12px;
+    font-size: 0.9rem;
+  }
+}
+
+
+/* 대시보드 환율 - PC에서 숨김, 모바일에서 표시 */
+@media (min-width: 769px) {
+  .dashboard-exchange-card {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-exchange-card {
+    display: block !important;
+  }
+}
