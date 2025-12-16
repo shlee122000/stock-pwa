@@ -53,6 +53,7 @@ let monitorInterval = null;
 let usPortfolio = JSON.parse(localStorage.getItem('usPortfolio')) || [];
 let usAlertList = JSON.parse(localStorage.getItem('usAlertList')) || [];
 
+
 // ==================== 초기화 ====================
 document.addEventListener('DOMContentLoaded', function() {
   initEventListeners();
@@ -61,13 +62,20 @@ document.addEventListener('DOMContentLoaded', function() {
   loadWatchlist();
   loadUsWatchlist();
   loadPortfolio();
-  loadDashboard();  // 이 줄 추가
+  loadDashboard();
   loadAlertList();
   updateAlertStockSelect();
   loadUsPortfolio();
   loadUsAlertList();
   loadAiThemeList();
+  
+  // 브라우저 알림 권한 요청
+  requestNotificationPermission();
+  
+  // 자동 로그인 검증
+  verifyToken();
 });
+
 
 // ==================== 이벤트 리스너 ====================
 function initEventListeners() {
@@ -81,6 +89,21 @@ function initEventListeners() {
   document.getElementById('run-analysis-btn').addEventListener('click', handleTechnicalAnalysis);
   document.getElementById('analysis-stock-code').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') handleTechnicalAnalysis();
+  });
+
+  // 매매신호 버튼
+  document.getElementById('go-signals-btn').addEventListener('click', function() {
+    var stockCode = document.getElementById('analysis-stock-code').value.trim();
+    if (stockCode) {
+      document.getElementById('signal-stock-code').value = stockCode;
+      switchTab('signals');
+      // 자동으로 신호 생성 실행
+      setTimeout(function() {
+        document.getElementById('generate-signal-btn').click();
+      }, 100);
+    } else {
+      alert('종목코드를 입력하세요.');
+    }
   });
 
   // 뉴스
@@ -218,6 +241,14 @@ function initTabs() {
     btn.addEventListener('click', function() {
       var tabId = this.getAttribute('data-tab');
       
+      // 히스토리에 추가 (같은 탭이 아닐 때만)
+      if (tabHistory[tabHistory.length - 1] !== tabId) {
+        tabHistory.push(tabId);
+        if (tabHistory.length > 20) {
+          tabHistory.shift();
+        }
+      }
+      
       // 활성 탭 변경
       document.querySelectorAll('.nav-item').forEach(function(b) {
         b.classList.remove('active');
@@ -241,6 +272,75 @@ function initTabs() {
   });
 }
 
+
+// 탭 히스토리 관리
+var tabHistory = ['dashboard'];
+
+// 탭 전환 함수 (하단 메뉴바용)
+function switchTab(tabId) {
+  // 히스토리에 추가 (같은 탭이 아닐 때만)
+  if (tabHistory[tabHistory.length - 1] !== tabId) {
+    tabHistory.push(tabId);
+    // 히스토리 최대 20개 유지
+    if (tabHistory.length > 20) {
+      tabHistory.shift();
+    }
+  }
+  
+  // 사이드바 nav-item 활성화 변경
+  document.querySelectorAll('.nav-item').forEach(function(btn) {
+    btn.classList.remove('active');
+    if (btn.getAttribute('data-tab') === tabId) {
+      btn.classList.add('active');
+    }
+  });
+  
+  // 하단 메뉴바 활성화 변경
+  document.querySelectorAll('.bottom-nav-item').forEach(function(btn) {
+    btn.classList.remove('active');
+  });
+  
+  // 컨텐츠 변경
+  document.querySelectorAll('.tab-content').forEach(function(tab) {
+    tab.classList.remove('active');
+  });
+  document.getElementById('tab-' + tabId).classList.add('active');
+  
+  // 모바일 사이드바 닫기
+  document.querySelector('.sidebar').classList.remove('open');
+}
+
+// 뒤로가기 함수
+function goBack() {
+  if (tabHistory.length > 1) {
+    // 현재 탭 제거
+    tabHistory.pop();
+    // 이전 탭으로 이동
+    var prevTab = tabHistory[tabHistory.length - 1];
+    
+    // 사이드바 nav-item 활성화 변경
+    document.querySelectorAll('.nav-item').forEach(function(btn) {
+      btn.classList.remove('active');
+      if (btn.getAttribute('data-tab') === prevTab) {
+        btn.classList.add('active');
+      }
+    });
+    
+    // 하단 메뉴바 활성화 변경
+    document.querySelectorAll('.bottom-nav-item').forEach(function(btn) {
+      btn.classList.remove('active');
+    });
+    
+    // 컨텐츠 변경
+    document.querySelectorAll('.tab-content').forEach(function(tab) {
+      tab.classList.remove('active');
+    });
+    document.getElementById('tab-' + prevTab).classList.add('active');
+  }
+}
+
+
+
 // 모바일 메뉴 토글
 function toggleMobileMenu() {
   document.querySelector('.sidebar').classList.toggle('open');
@@ -256,15 +356,37 @@ function hideLoading() {
 }
 
 // ==================== API 호출 ====================
-async function apiCall(endpoint) {
+async function apiCall(endpoint, options) {
   try {
-    const response = await fetch(API_BASE + endpoint);
+    var fetchOptions = {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+    
+    // options가 있으면 병합
+    if (options) {
+      fetchOptions.method = options.method || 'GET';
+      if (options.body) {
+        fetchOptions.body = options.body;
+      }
+      // headers 병합
+      if (options.headers) {
+        for (var key in options.headers) {
+          fetchOptions.headers[key] = options.headers[key];
+        }
+      }
+    }
+    
+    const response = await fetch(API_BASE + endpoint, fetchOptions);
     return await response.json();
   } catch (error) {
     console.error('API 오류:', error);
     return { success: false, error: error.message };
   }
 }
+
+
 
 // ==================== 환율 ====================
 async function loadExchangeRate() {
@@ -317,13 +439,19 @@ async function handleStockSearch() {
 
 function displaySearchResults(results) {
   var container = document.getElementById('search-result');
-  var html = '<table><thead><tr><th>종목명</th><th>코드</th><th>기능</th></tr></thead><tbody>';
+  
+  var html = '<table style="width:100%; table-layout:fixed;">';
+  html += '<thead><tr>';
+  html += '<th style="width:45%">종목명</th>';
+  html += '<th style="width:30%">코드</th>';
+  html += '<th style="width:25%; text-align:center;">기능</th>';
+  html += '</tr></thead><tbody>';
   
   results.forEach(function(stock) {
     html += '<tr>';
     html += '<td><strong>' + stock.name + '</strong></td>';
     html += '<td>' + stock.code + '</td>';
-    html += '<td><button onclick="analyzeStock(\'' + stock.code + '\')">분석</button></td>';
+    html += '<td style="text-align:center;"><button onclick="analyzeStock(\'' + stock.code + '\')">분석</button></td>';
     html += '</tr>';
   });
   
@@ -726,11 +854,21 @@ function displayRecommendation(data, stockCode) {
   container.innerHTML = html;
 }
 
+
+
 // ==================== 관심 종목 ====================
 async function handleAddWatchlist() {
   var input = document.getElementById('watchlist-add-code').value.trim();
   if (!input) {
     alert('종목코드 또는 종목명을 입력하세요.');
+    return;
+  }
+  
+  // 로그인 확인
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    alert('로그인이 필요합니다.');
+    openAuthModal();
     return;
   }
   
@@ -746,26 +884,30 @@ async function handleAddWatchlist() {
       return;
     }
     
-    // 중복 확인
-    if (watchlist.find(function(item) { return item.code === stockCode; })) {
-      alert('이미 관심 종목에 있습니다.');
-      hideLoading();
-      return;
-    }
-    
     // 종목 정보 조회
     var result = await apiCall('/api/korea/stock/' + stockCode);
     
     if (result.success && result.data && result.data.name) {
-      watchlist.push({
-        code: stockCode,
-        name: result.data.name,
-        addedAt: new Date().toISOString()
+      // 서버에 추가
+      var addResult = await apiCall('/api/watchlist/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({
+          stockCode: stockCode,
+          stockName: result.data.name
+        })
       });
-      localStorage.setItem('watchlist', JSON.stringify(watchlist));
-      document.getElementById('watchlist-add-code').value = '';
-      loadWatchlist();
-      alert(result.data.name + ' 추가되었습니다!');
+      
+      if (addResult.success) {
+        document.getElementById('watchlist-add-code').value = '';
+        loadWatchlist();
+        alert(result.data.name + ' 추가되었습니다!');
+      } else {
+        alert(addResult.message || '추가 실패');
+      }
     } else {
       alert('종목 정보를 가져올 수 없습니다: ' + input);
     }
@@ -777,47 +919,95 @@ async function handleAddWatchlist() {
   hideLoading();
 }
 
+
+
 async function loadWatchlist() {
   var container = document.getElementById('watchlist-container');
   
-  if (watchlist.length === 0) {
-    container.innerHTML = '<p>관심 종목이 없습니다.</p>';
+  // 로그인 확인
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    container.innerHTML = '<p>로그인하면 관심종목을 저장할 수 있습니다.</p>';
     return;
   }
   
-  var html = '<table><thead><tr><th>종목명</th><th>코드</th><th>현재가</th><th>등락</th><th>기능</th></tr></thead><tbody>';
-  
-  for (var i = 0; i < watchlist.length; i++) {
-    var item = watchlist[i];
-    var result = await apiCall('/api/korea/stock/' + item.code);
-    var data = result.success ? result.data : null;
+  try {
+    // 서버에서 관심종목 조회
+    var result = await fetch(API_BASE + '/api/watchlist', {
+      headers: {
+        'Authorization': token
+      }
+    }).then(function(res) { return res.json(); });
     
-    var price = data ? data.price.toLocaleString() + '원' : '--';
-    var change = data ? data.change : 0;
-    var changeClass = change >= 0 ? 'positive' : 'negative';
-    var changeText = data ? (change >= 0 ? '+' : '') + change.toLocaleString() : '--';
+    if (!result.success || !result.data || result.data.length === 0) {
+      container.innerHTML = '<p>관심 종목이 없습니다.</p>';
+      return;
+    }
     
-    html += '<tr>';
-    html += '<td><strong>' + item.name + '</strong></td>';
-    html += '<td>' + item.code + '</td>';
-    html += '<td>' + price + '</td>';
-    html += '<td class="' + changeClass + '">' + changeText + '</td>';
-    html += '<td>';
-    html += '<button onclick="analyzeStock(\'' + item.code + '\')">분석</button> ';
-    html += '<button class="btn-danger" onclick="removeFromWatchlist(\'' + item.code + '\')">삭제</button>';
-    html += '</td>';
-    html += '</tr>';
+    var watchlistData = result.data;
+    var html = '<table><thead><tr><th>종목명</th><th>코드</th><th>현재가</th><th>등락</th><th>기능</th></tr></thead><tbody>';
+    
+    for (var i = 0; i < watchlistData.length; i++) {
+      var item = watchlistData[i];
+      var stockResult = await apiCall('/api/korea/stock/' + item.stock_code);
+      var data = stockResult.success ? stockResult.data : null;
+      
+      var price = data ? data.price.toLocaleString() + '원' : '--';
+      var change = data ? data.change : 0;
+      var changeClass = change >= 0 ? 'positive' : 'negative';
+      var changeText = data ? (change >= 0 ? '+' : '') + change.toLocaleString() : '--';
+      
+      html += '<tr>';
+      html += '<td><strong>' + (item.stock_name || item.stock_code) + '</strong></td>';
+      html += '<td>' + item.stock_code + '</td>';
+      html += '<td>' + price + '</td>';
+      html += '<td class="' + changeClass + '">' + changeText + '</td>';
+      html += '<td>';
+      html += '<button onclick="analyzeStock(\'' + item.stock_code + '\')">분석</button> ';
+      html += '<button class="btn-danger" onclick="removeFromWatchlist(\'' + item.stock_code + '\')">삭제</button>';
+      html += '</td>';
+      html += '</tr>';
+    }
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  } catch (error) {
+    console.error('관심종목 로드 오류:', error);
+    container.innerHTML = '<p>관심종목을 불러올 수 없습니다.</p>';
   }
-  
-  html += '</tbody></table>';
-  container.innerHTML = html;
 }
 
-function removeFromWatchlist(code) {
-  watchlist = watchlist.filter(function(item) { return item.code !== code; });
-  localStorage.setItem('watchlist', JSON.stringify(watchlist));
-  loadWatchlist();
+
+
+async function removeFromWatchlist(code) {
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    alert('로그인이 필요합니다.');
+    return;
+  }
+  
+  try {
+    var result = await apiCall('/api/watchlist/remove', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({ stockCode: code })
+    });
+    
+    if (result.success) {
+      loadWatchlist();
+    } else {
+      alert(result.message || '삭제 실패');
+    }
+  } catch (error) {
+    console.error('관심종목 삭제 오류:', error);
+    alert('오류가 발생했습니다.');
+  }
 }
+
+
 
 // ==================== 미국 주식 ====================
 async function handleUsStockSearch() {
@@ -1056,7 +1246,7 @@ async function loadThemeList() {
 
 function displayThemeList(themes) {
   var container = document.getElementById('theme-list-container');
-  var html = '<table><thead><tr><th>테마명</th><th>등락률</th><th>분석</th></tr></thead><tbody>';
+  var html = '<table class="table-fit"><thead><tr><th>테마명</th><th>등락률</th><th>분석</th></tr></thead><tbody>';
   
   themes.forEach(function(theme) {
     var changeClass = theme.changeRate && theme.changeRate.includes('-') ? 'negative' : 'positive';
@@ -1089,17 +1279,30 @@ async function selectTheme(themeCode, themeName) {
   hideLoading();
 }
 
+
 function displayThemeStocks(stocks) {
   var container = document.getElementById('theme-stocks-container');
-  var html = '<table><thead><tr><th>종목명</th><th>코드</th><th>현재가</th><th>등락</th><th>기능</th></tr></thead><tbody>';
+  
+  var html = '<table class="table-fit"><thead><tr>';
+  html += '<th>종목명</th>';
+  html += '<th class="hide-mobile">코드</th>';
+  html += '<th>현재가</th>';
+  html += '<th>등락</th>';
+  html += '<th>기능</th>';
+  html += '</tr></thead><tbody>';
   
   stocks.forEach(function(stock) {
     var changeClass = stock.changeType === 'up' ? 'positive' : 'negative';
     html += '<tr>';
     html += '<td><strong>' + stock.name + '</strong></td>';
-    html += '<td>' + stock.code + '</td>';
+    html += '<td class="hide-mobile">' + stock.code + '</td>';
     html += '<td>' + (stock.price > 0 ? stock.price.toLocaleString() + '원' : '--') + '</td>';
-    html += '<td class="' + changeClass + '">' + (stock.change || '--') + '</td>';
+    var changeText = stock.change || '--';
+    // 앞의 - 기호 제거
+    if (changeText.startsWith('-') && !changeText.match(/^-[\d]/)) {
+      changeText = changeText.substring(1);
+    }
+    html += '<td class="' + changeClass + '">' + changeText + '</td>';
     html += '<td><button onclick="analyzeStock(\'' + stock.code + '\')">분석</button></td>';
     html += '</tr>';
   });
@@ -1156,12 +1359,22 @@ async function analyzeTheme(themeCode, themeName) {
   hideLoading();
 }
 
+
+
 function displayThemeAnalysis(themeName, stocks) {
   document.getElementById('theme-analysis-card').style.display = 'block';
   var container = document.getElementById('theme-analysis-result');
   
   var html = '<p><strong>' + themeName + '</strong> 테마 상위 종목</p>';
-  html += '<table><thead><tr><th>순위</th><th>종목명</th><th>점수</th><th>RSI</th><th>신호</th><th>기능</th></tr></thead><tbody>';
+  html += '<div style="overflow-x:auto; -webkit-overflow-scrolling:touch;">';
+  html += '<table style="min-width:500px;"><thead><tr>';
+  html += '<th>순위</th>';
+  html += '<th>종목명</th>';
+  html += '<th>점수</th>';
+  html += '<th>RSI</th>';
+  html += '<th>신호</th>';
+  html += '<th>기능</th>';
+  html += '</tr></thead><tbody>';
   
   stocks.forEach(function(stock, index) {
     var signalClass = stock.signal === 'BUY' ? 'positive' : (stock.signal === 'SELL' ? 'negative' : '');
@@ -1173,14 +1386,14 @@ function displayThemeAnalysis(themeName, stocks) {
     html += '<td style="color:#3b82f6; font-weight:bold;">' + stock.score + '점</td>';
     html += '<td>' + stock.rsi.toFixed(1) + '</td>';
     html += '<td class="' + signalClass + '">' + stock.signal + '</td>';
-    html += '<td><button onclick="analyzeStock(\'' + stock.code + '\')">상세</button></td>';
+    html += '<td><button onclick="analyzeStock(\'' + stock.code + '\')">분석</button></td>';
     html += '</tr>';
   });
   
   html += '</tbody></table>';
+  html += '</div>';
   container.innerHTML = html;
 }
-
 
 
 // ==================== 포트폴리오 ====================
@@ -1191,6 +1404,14 @@ async function handleAddPortfolio() {
   
   if (!input || !qty || !price) {
     alert('모든 항목을 입력하세요.');
+    return;
+  }
+  
+  // 로그인 확인
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    alert('로그인이 필요합니다.');
+    openAuthModal();
     return;
   }
   
@@ -1206,18 +1427,39 @@ async function handleAddPortfolio() {
       return;
     }
     
-    portfolio.push({ code: stockCode, qty: qty, price: price, addedAt: new Date().toISOString() });
-    localStorage.setItem('portfolio', JSON.stringify(portfolio));
+    // 종목명 조회
+    var stockResult = await apiCall('/api/korea/stock/' + stockCode);
+    var stockName = stockResult.success && stockResult.data ? stockResult.data.name : stockCode;
     
-    document.getElementById('portfolio-code').value = '';
-    document.getElementById('portfolio-qty').value = '';
-    document.getElementById('portfolio-price').value = '';
+    // 서버에 추가
+    var addResult = await apiCall('/api/portfolio/add', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({
+        stockCode: stockCode,
+        stockName: stockName,
+        quantity: qty,
+        buyPrice: price
+      })
+    });
     
-    loadPortfolio();
-    updateAlertStockSelect();
-    alert('포트폴리오에 추가되었습니다!');
+    if (addResult.success) {
+      document.getElementById('portfolio-code').value = '';
+      document.getElementById('portfolio-qty').value = '';
+      document.getElementById('portfolio-price').value = '';
+      
+      loadPortfolio();
+      updateAlertStockSelect();
+      alert('포트폴리오에 추가되었습니다!');
+    } else {
+      alert(addResult.message || '추가 실패');
+    }
   } catch (error) {
     console.error('포트폴리오 추가 오류:', error);
+    alert('오류가 발생했습니다.');
   }
   
   hideLoading();
@@ -1230,69 +1472,123 @@ async function loadPortfolio() {
   var container = document.getElementById('portfolio-list');
   var summaryContainer = document.getElementById('portfolio-summary');
   
-  if (portfolio.length === 0) {
-    container.innerHTML = '<p>등록된 주식이 없습니다.</p>';
+  // 로그인 확인
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    container.innerHTML = '<p>로그인하면 포트폴리오를 저장할 수 있습니다.</p>';
     summaryContainer.innerHTML = '<p>--</p>';
     return;
   }
   
-  var html = '<table><thead><tr><th>종목</th><th>수량</th><th>매수가</th><th>현재가</th><th>평가금</th><th>수익</th><th>기능</th></tr></thead><tbody>';
-  
-  var totalInvest = 0;
-  var totalValue = 0;
-  
-  for (var i = 0; i < portfolio.length; i++) {
-    var item = portfolio[i];
-    var result = await apiCall('/api/korea/stock/' + item.code);
-    var data = result.success ? result.data : null;
+  try {
+    // 서버에서 포트폴리오 조회
+    var result = await fetch(API_BASE + '/api/portfolio', {
+      headers: {
+        'Authorization': token
+      }
+    }).then(function(res) { return res.json(); });
     
-    var currentPrice = data ? data.price : 0;
-    var investAmt = item.qty * item.price;
-    var valueAmt = item.qty * currentPrice;
-    var profit = valueAmt - investAmt;
-    var profitRate = investAmt > 0 ? ((profit / investAmt) * 100).toFixed(2) : 0;
-    var profitClass = profit >= 0 ? 'positive' : 'negative';
+    if (!result.success || !result.data || result.data.length === 0) {
+      container.innerHTML = '<p>등록된 주식이 없습니다.</p>';
+      summaryContainer.innerHTML = '<p>--</p>';
+      return;
+    }
     
-    totalInvest += investAmt;
-    totalValue += valueAmt;
+    var portfolioData = result.data;
     
-    html += '<tr>';
-    html += '<td><strong>' + (data ? data.name : item.code) + '</strong></td>';
-    html += '<td>' + item.qty + '주</td>';
-    html += '<td>' + item.price.toLocaleString() + '원</td>';
-    html += '<td>' + (currentPrice > 0 ? currentPrice.toLocaleString() + '원' : '--') + '</td>';
-    html += '<td>' + valueAmt.toLocaleString() + '원</td>';
-    html += '<td class="' + profitClass + '">' + (profit >= 0 ? '+' : '') + profit.toLocaleString() + '원 (' + (profit >= 0 ? '+' : '') + profitRate + '%)</td>';
-    html += '<td><button class="btn-danger" onclick="removeFromPortfolio(' + i + ')">삭제</button></td>';
-    html += '</tr>';
+    // 전역 portfolio 변수 업데이트 (알림 드롭다운용)
+    portfolio = portfolioData.map(function(item) {
+      return {
+        code: item.stock_code,
+        name: item.stock_name || item.stock_code,
+        qty: item.quantity,
+        price: item.buy_price
+      };
+    });
+    
+    var html = '<table><thead><tr><th>종목</th><th>수량</th><th>매수가</th><th>현재가</th><th>평가금</th><th>수익</th><th>기능</th></tr></thead><tbody>';
+    
+    var totalInvest = 0;
+    var totalValue = 0;
+    
+    for (var i = 0; i < portfolioData.length; i++) {
+      var item = portfolioData[i];
+      var stockResult = await apiCall('/api/korea/stock/' + item.stock_code);
+      var data = stockResult.success ? stockResult.data : null;
+      
+      var currentPrice = data ? data.price : 0;
+      var investAmt = item.quantity * item.buy_price;
+      var valueAmt = item.quantity * currentPrice;
+      var profit = valueAmt - investAmt;
+      var profitRate = investAmt > 0 ? ((profit / investAmt) * 100).toFixed(2) : 0;
+      var profitClass = profit >= 0 ? 'positive' : 'negative';
+      
+      totalInvest += investAmt;
+      totalValue += valueAmt;
+      
+      html += '<tr>';
+      html += '<td><strong>' + (item.stock_name || item.stock_code) + '</strong></td>';
+      html += '<td>' + item.quantity + '주</td>';
+      html += '<td>' + Number(item.buy_price).toLocaleString() + '원</td>';
+      html += '<td>' + (currentPrice > 0 ? currentPrice.toLocaleString() + '원' : '--') + '</td>';
+      html += '<td>' + valueAmt.toLocaleString() + '원</td>';
+      html += '<td class="' + profitClass + '">' + (profit >= 0 ? '+' : '') + profit.toLocaleString() + '원 (' + (profit >= 0 ? '+' : '') + profitRate + '%)</td>';
+      html += '<td><button class="btn-danger" onclick="removeFromPortfolio(' + item.id + ')">삭제</button></td>';
+      html += '</tr>';
+    }
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+    
+    // 총 평가
+    var totalProfit = totalValue - totalInvest;
+    var totalProfitRate = totalInvest > 0 ? ((totalProfit / totalInvest) * 100).toFixed(2) : 0;
+    var totalClass = totalProfit >= 0 ? 'positive' : 'negative';
+    
+    var summaryHtml = '<div class="indicators-grid">';
+    summaryHtml += '<div class="indicator-card"><div class="label">총 투자금</div><div class="value">' + totalInvest.toLocaleString() + '원</div></div>';
+    summaryHtml += '<div class="indicator-card"><div class="label">총 평가금</div><div class="value">' + totalValue.toLocaleString() + '원</div></div>';
+    summaryHtml += '<div class="indicator-card"><div class="label">총 수익</div><div class="value ' + totalClass + '">' + (totalProfit >= 0 ? '+' : '') + totalProfit.toLocaleString() + '원</div></div>';
+    summaryHtml += '<div class="indicator-card"><div class="label">수익률</div><div class="value ' + totalClass + '">' + (totalProfit >= 0 ? '+' : '') + totalProfitRate + '%</div></div>';
+    summaryHtml += '</div>';
+    summaryContainer.innerHTML = summaryHtml;
+    
+    // 알림 드롭다운 업데이트
+    updateAlertStockSelect();
+  } catch (error) {
+    console.error('포트폴리오 로드 오류:', error);
+    container.innerHTML = '<p>포트폴리오를 불러올 수 없습니다.</p>';
   }
-  
-  html += '</tbody></table>';
-  container.innerHTML = html;
-  
-  // 총 평가
-  var totalProfit = totalValue - totalInvest;
-  var totalProfitRate = totalInvest > 0 ? ((totalProfit / totalInvest) * 100).toFixed(2) : 0;
-  var totalClass = totalProfit >= 0 ? 'positive' : 'negative';
-  
-  var summaryHtml = '<div class="indicators-grid">';
-  summaryHtml += '<div class="indicator-card"><div class="label">총 투자금</div><div class="value">' + totalInvest.toLocaleString() + '원</div></div>';
-  summaryHtml += '<div class="indicator-card"><div class="label">총 평가금</div><div class="value">' + totalValue.toLocaleString() + '원</div></div>';
-  summaryHtml += '<div class="indicator-card"><div class="label">총 수익</div><div class="value ' + totalClass + '">' + (totalProfit >= 0 ? '+' : '') + totalProfit.toLocaleString() + '원</div></div>';
-  summaryHtml += '<div class="indicator-card"><div class="label">수익률</div><div class="value ' + totalClass + '">' + (totalProfit >= 0 ? '+' : '') + totalProfitRate + '%</div></div>';
-  summaryHtml += '</div>';
-  summaryContainer.innerHTML = summaryHtml;
-
-  // 알림 드롭다운 업데이트
-  updateAlertStockSelect();
 }
 
 
 
-function removeFromPortfolio(index) {
-  portfolio.splice(index, 1);
-  localStorage.setItem('portfolio', JSON.stringify(portfolio));
-  loadPortfolio();
+async function removeFromPortfolio(id) {
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    alert('로그인이 필요합니다.');
+    return;
+  }
+  
+  try {
+    var result = await apiCall('/api/portfolio/remove', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({ id: id })
+    });
+    
+    if (result.success) {
+      loadPortfolio();
+    } else {
+      alert(result.message || '삭제 실패');
+    }
+  } catch (error) {
+    console.error('포트폴리오 삭제 오류:', error);
+    alert('오류가 발생했습니다.');
+  }
 }
 
 
@@ -1338,66 +1634,105 @@ async function loadDashboard() {
   }
 
 
-  // 추천 종목 (새 점수 체계 기반)
+// 추천 종목 (대형주/중형주/소형주 TOP 2)
   try {
     document.getElementById('recommended-stocks').innerHTML = '<p>🤖 AI 분석 중...</p>';
     
-    // 거래량 상위 종목 가져오기
-    var topResult = await apiCall('/api/korea/top-volume');
+    // KOSPI + KOSDAQ 시가총액 데이터 조회
+    var kospiResult = await apiCall('/api/korea/market-cap/0');
+    var kosdaqResult = await apiCall('/api/korea/market-cap/1');
     
-    if (topResult.success && topResult.data && topResult.data.length > 0) {
-      var candidates = topResult.data.slice(0, 10);
-      var analyzedStocks = [];
+    var allStocks = [];
+    if (kospiResult.success && kospiResult.data) {
+      allStocks = allStocks.concat(kospiResult.data);
+    }
+    if (kosdaqResult.success && kosdaqResult.data) {
+      allStocks = allStocks.concat(kosdaqResult.data);
+    }
+    
+    if (allStocks.length > 0) {
+      // 시가총액별 분류
+      var largeStocks = allStocks.filter(function(s) { return s.marketCap >= 100000; }).slice(0, 5);
+      var midStocks = allStocks.filter(function(s) { return s.marketCap >= 10000 && s.marketCap < 100000; }).slice(0, 5);
+      var smallStocks = allStocks.filter(function(s) { return s.marketCap < 10000; }).slice(0, 5);
       
-      // 각 종목 분석
-      for (var i = 0; i < candidates.length; i++) {
-        var stock = candidates[i];
-        
-        try {
-          var techResult = await apiCall('/api/analysis/technical/' + stock.code);
-          
-          if (techResult.success) {
-            var stockData = {
-              code: stock.code,
-              name: stock.name,
-              price: techResult.data.currentPrice || 0,
-              techScore: techResult.data.technicalScore || 0,
-              volumeRatio: techResult.data.volumeRatio || 0,
-              currentPrice: techResult.data.currentPrice || 0,
-              ma20: techResult.data.ma20 || 0,
-              ma60: techResult.data.ma60 || 0,
-              changeRate: techResult.data.changeRate || 0,
-              marketCap: stock.marketCap || 0
-            };
-            
-            var scoreResult = calculateNewScore(stockData);
-            stockData.newScore = scoreResult.totalScaled;
-            analyzedStocks.push(stockData);
+      // 각 카테고리별 분석
+      async function analyzeCategory(stocks) {
+        var analyzed = [];
+        for (var i = 0; i < stocks.length; i++) {
+          try {
+            var techResult = await apiCall('/api/analysis/technical/' + stocks[i].code);
+            if (techResult.success) {
+              var stockData = {
+                code: stocks[i].code,
+                name: stocks[i].name,
+                price: stocks[i].price,
+                marketCap: stocks[i].marketCap,
+                techScore: techResult.data.technicalScore || 0,
+                volumeRatio: techResult.data.volumeRatio || 0,
+                currentPrice: techResult.data.currentPrice || 0,
+                ma20: techResult.data.ma20 || 0,
+                ma60: techResult.data.ma60 || 0,
+                changeRate: techResult.data.changeRate || 0
+              };
+              var scoreResult = calculateNewScore(stockData);
+              stockData.newScore = scoreResult.totalScaled;
+              analyzed.push(stockData);
+            }
+          } catch (e) {
+            console.log('분석 오류:', stocks[i].name);
           }
-        } catch (e) {
-          console.error('분석 오류:', stock.name, e);
         }
+        analyzed.sort(function(a, b) { return b.newScore - a.newScore; });
+        return analyzed.slice(0, 2);
       }
       
-      // 점수 순 정렬
-      analyzedStocks.sort(function(a, b) {
-        return b.newScore - a.newScore;
-      });
+      document.getElementById('recommended-stocks').innerHTML = '<p>🤖 대형주 분석 중...</p>';
+      var topLarge = await analyzeCategory(largeStocks);
       
-      // 상위 5개 표시
-      var topHtml = '<ul style="list-style:none; padding:0; margin:0;">';
+      document.getElementById('recommended-stocks').innerHTML = '<p>🤖 중형주 분석 중...</p>';
+      var topMid = await analyzeCategory(midStocks);
       
-      analyzedStocks.slice(0, 5).forEach(function(stock, index) {
-        var medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : (index + 1);
-        topHtml += '<li style="padding:8px 0; border-bottom:1px solid #eee; cursor:pointer;" onclick="analyzeStock(\'' + stock.code + '\')">';
-        topHtml += '<span style="margin-right:10px;">' + medal + '</span>';
+      document.getElementById('recommended-stocks').innerHTML = '<p>🤖 소형주 분석 중...</p>';
+      var topSmall = await analyzeCategory(smallStocks);
+      
+      // 결과 표시
+      var topHtml = '';
+      
+      // 대형주 TOP 2
+      topHtml += '<div style="margin-bottom:10px;"><strong>🏢 대형주</strong></div>';
+      topLarge.forEach(function(stock, index) {
+        var medal = index === 0 ? '🥇' : '🥈';
+        topHtml += '<div style="padding:6px 0; border-bottom:1px solid #eee; cursor:pointer;" onclick="analyzeStock(\'' + stock.code + '\')">';
+        topHtml += '<span style="margin-right:8px;">' + medal + '</span>';
         topHtml += '<strong>' + stock.name + '</strong>';
         topHtml += '<span style="color:#3b82f6; margin-left:10px; font-weight:bold;">' + stock.newScore + '점</span>';
-        topHtml += '</li>';
+        topHtml += '</div>';
       });
       
-      topHtml += '</ul>';
-      topHtml += '<p style="font-size:0.8rem; color:#999; margin-top:10px;">※ AI 종합 점수 기준</p>';
+      // 중형주 TOP 2
+      topHtml += '<div style="margin:10px 0 10px 0;"><strong>🏠 중형주</strong></div>';
+      topMid.forEach(function(stock, index) {
+        var medal = index === 0 ? '🥇' : '🥈';
+        topHtml += '<div style="padding:6px 0; border-bottom:1px solid #eee; cursor:pointer;" onclick="analyzeStock(\'' + stock.code + '\')">';
+        topHtml += '<span style="margin-right:8px;">' + medal + '</span>';
+        topHtml += '<strong>' + stock.name + '</strong>';
+        topHtml += '<span style="color:#3b82f6; margin-left:10px; font-weight:bold;">' + stock.newScore + '점</span>';
+        topHtml += '</div>';
+      });
+      
+      // 소형주 TOP 2
+      topHtml += '<div style="margin:10px 0 10px 0;"><strong>🏪 소형주</strong></div>';
+      topSmall.forEach(function(stock, index) {
+        var medal = index === 0 ? '🥇' : '🥈';
+        topHtml += '<div style="padding:6px 0; border-bottom:1px solid #eee; cursor:pointer;" onclick="analyzeStock(\'' + stock.code + '\')">';
+        topHtml += '<span style="margin-right:8px;">' + medal + '</span>';
+        topHtml += '<strong>' + stock.name + '</strong>';
+        topHtml += '<span style="color:#3b82f6; margin-left:10px; font-weight:bold;">' + stock.newScore + '점</span>';
+        topHtml += '</div>';
+      });
+      
+      topHtml += '<p style="font-size:0.8rem; color:#999; margin-top:10px;">※ AI 종합 점수 기준 (시가총액별 TOP 2)</p>';
       document.getElementById('recommended-stocks').innerHTML = topHtml;
     } else {
       document.getElementById('recommended-stocks').innerHTML = '<p>데이터를 불러올 수 없습니다.</p>';
@@ -1407,12 +1742,9 @@ async function loadDashboard() {
     document.getElementById('recommended-stocks').innerHTML = '<p>데이터를 불러올 수 없습니다.</p>';
   }
 
-  
-  
   // 주요 뉴스
   try {
-    // 삼성전자 뉴스로 대체
-    var newsResult = await apiCall('/api/korea/news/005930');
+    var newsResult = await apiCall('/api/korea/news/' + encodeURIComponent('증시 주식시장'));
     
     if (newsResult.success && newsResult.data && newsResult.data.length > 0) {
       var newsHtml = '<ul style="list-style:none; padding:0; margin:0;">';
@@ -1434,6 +1766,7 @@ async function loadDashboard() {
     console.error('뉴스 오류:', error);
     document.getElementById('main-news').innerHTML = '<p>뉴스를 불러올 수 없습니다.</p>';
   }
+
 
   // 포트폴리오 요약
   loadDashboardPortfolio();
@@ -1750,16 +2083,13 @@ async function checkAlerts() {
           if (triggered && !item.triggered.includes(target.price)) {
             alertList[i].triggered.push(target.price);
             
-            var message = item.name + ' (' + item.code + ')\n';
-            message += target.type === 'profit' ? '🎯 목표가 도달!' : '🛑 손절가 도달!';
-            message += '\n현재가: ' + currentPrice.toLocaleString() + '원';
-            message += '\n설정가: ' + target.price.toLocaleString() + '원';
-            
-            alert(message);
-            
-            if ('Notification' in window && Notification.permission === 'granted') {
-              new Notification('주식 알림', { body: message });
-            }
+            // 새 팝업 알림 표시
+            showNotification({
+              title: target.type === 'profit' ? '목표가 도달!' : '손절가 도달!',
+              stockName: item.name + ' (' + item.code + ')',
+              message: '현재가: ' + currentPrice.toLocaleString() + '원 (설정: ' + target.price.toLocaleString() + '원)',
+              type: target.type === 'profit' ? 'profit' : 'loss'
+            });
           }
         });
       }
@@ -1773,38 +2103,37 @@ async function checkAlerts() {
         
         // RSI 과매수 체크
         if (tech.rsi && tech.rsi >= 70) {
-          techSignals.push('📊 RSI 과매수 (' + tech.rsi.toFixed(1) + ') - 매도 고려');
+          techSignals.push('RSI 과매수 (' + tech.rsi.toFixed(1) + ')');
         }
         
         // MACD 하락 전환 체크
         if (tech.macdHistogram && tech.macdHistogram < 0) {
-          techSignals.push('📉 MACD 하락 전환 - 매도 고려');
+          techSignals.push('MACD 하락 전환');
         }
         
         // 이동평균선 하향 돌파 체크
         if (tech.currentPrice && tech.ma20 && tech.currentPrice < tech.ma20) {
-          techSignals.push('⚠️ 20일 이동평균선 하향 돌파 - 주의');
+          techSignals.push('20일선 하향 돌파');
         }
         
         // 기술적 점수 낮음
         if (tech.technicalScore && tech.technicalScore <= 30) {
-          techSignals.push('🔴 기술적 점수 낮음 (' + tech.technicalScore + '점) - 매도 고려');
+          techSignals.push('기술점수 낮음 (' + tech.technicalScore + '점)');
         }
         
         alertList[i].techSignals = techSignals;
         
         // 기술적 매도 신호가 있으면 알림
         if (techSignals.length > 0 && !alertList[i].techAlerted) {
-          var techMessage = item.name + ' (' + item.code + ')\n';
-          techMessage += '📊 기술적 매도 신호 발생!\n\n';
-          techMessage += techSignals.join('\n');
+          // 새 팝업 알림 표시
+          showNotification({
+            title: '기술적 매도 신호!',
+            stockName: item.name + ' (' + item.code + ')',
+            message: techSignals.join(' / '),
+            type: 'loss'
+          });
           
-          alert(techMessage);
           alertList[i].techAlerted = true;
-          
-          if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification('기술적 매도 신호', { body: techMessage });
-          }
         }
         
         // 기술적 신호가 해제되면 다시 알림 가능하도록
@@ -3590,17 +3919,28 @@ async function loadAiByMarketCap(capType) {
   document.getElementById('ai-small-cap-btn').className = capType === 'small' ? 'btn-primary' : 'btn-secondary';
   
   try {
-    // KOSPI 시가총액 데이터만 조회 (속도 개선)
-    var result = await apiCall('/api/korea/market-cap/0');
+    // KOSPI + KOSDAQ 시가총액 데이터 조회
+    var kospiResult = await apiCall('/api/korea/market-cap/0');
+    var kosdaqResult = await apiCall('/api/korea/market-cap/1');
     
-    if (!result.success || !result.data) {
+    var allStocks = [];
+    
+    if (kospiResult.success && kospiResult.data) {
+      allStocks = allStocks.concat(kospiResult.data);
+    }
+    
+    if (kosdaqResult.success && kosdaqResult.data) {
+      allStocks = allStocks.concat(kosdaqResult.data);
+    }
+    
+    if (allStocks.length === 0) {
       container.innerHTML = '<p>데이터를 불러올 수 없습니다.</p>';
       hideLoading();
       return;
     }
     
     // 시가총액 기준으로 필터링
-    var filteredStocks = filterByMarketCap(result.data, capType);
+    var filteredStocks = filterByMarketCap(allStocks, capType);
     
     if (filteredStocks.length === 0) {
       container.innerHTML = '<p>해당 조건의 종목이 없습니다.</p>';
@@ -3608,7 +3948,7 @@ async function loadAiByMarketCap(capType) {
       return;
     }
     
-    // 상위 10개만 기술적 분석
+    // 상위 20개만 기술적 분석
     var candidates = filteredStocks.slice(0, 20);
     var analyzedStocks = [];
     
@@ -3689,13 +4029,13 @@ function displayAiCapResult(stocks, capType) {
   }
   
   var html = '<h4>📈 ' + getCapTypeName(capType) + ' TOP ' + stocks.length + '</h4>';
-  html += '<table><thead><tr>';
+  html += '<table class="table-fit"><thead><tr>';
   html += '<th>순위</th>';
   html += '<th>종목명</th>';
   html += '<th>현재가</th>';
-  html += '<th>시가총액</th>';
-  html += '<th>기술적 점수</th>';
-  html += '<th>RSI</th>';
+  html += '<th class="hide-mobile">시가총액</th>';
+  html += '<th><span class="hide-mobile">기술적 </span>점수</th>';
+  html += '<th class="hide-mobile">RSI</th>';
   html += '<th>신호</th>';
   html += '<th>기능</th>';
   html += '</tr></thead><tbody>';
@@ -3717,11 +4057,11 @@ function displayAiCapResult(stocks, capType) {
     html += '<td>' + medal + '</td>';
     html += '<td><strong>' + stock.name + '</strong><br><small>' + stock.code + '</small></td>';
     html += '<td>' + stock.price.toLocaleString() + '원</td>';
-    html += '<td>' + stock.marketCapText + '</td>';
+    html += '<td class="hide-mobile">' + stock.marketCapText + '</td>';
     html += '<td style="color:#3b82f6; font-weight:bold;">' + stock.techScore + '점</td>';
-    html += '<td>' + (stock.rsi > 0 ? stock.rsi.toFixed(1) : '--') + '</td>';
+    html += '<td class="hide-mobile">' + (stock.rsi > 0 ? stock.rsi.toFixed(1) : '--') + '</td>';
     html += '<td class="' + signalClass + '">' + (signalText[signal] || signal) + '</td>';
-    html += '<td><button onclick="analyzeStock(\'' + stock.code + '\')">상세분석</button></td>';
+    html += '<td><button onclick="analyzeStock(\'' + stock.code + '\')">분석</button></td>';
     html += '</tr>';
   });
   
@@ -3878,7 +4218,7 @@ async function aiAnalyzeStock() {
   
   showLoading();
   
-  var container = document.getElementById('ai-detail-container');
+  var container = document.getElementById('ai-direct-search-result');
   container.innerHTML = '<p>🤖 AI가 분석 중입니다...</p>';
   
   try {
@@ -3981,7 +4321,7 @@ async function aiAnalyzeStock() {
 async function aiAnalyzeStockByCode(stockCode, themeInfo) {
   showLoading();
   
-  var container = document.getElementById('ai-detail-container');
+  var container = document.getElementById('ai-direct-search-result');
   container.innerHTML = '<p>🤖 AI가 분석 중입니다...</p>';
   
   try {
@@ -4123,7 +4463,7 @@ async function findStockTheme(stockCode) {
 
 // AI 상세 분석 결과 표시
 function displayAiDetailResult(data) {
-  var container = document.getElementById('ai-detail-container');
+  var container = document.getElementById('ai-direct-search-result');
   
   var tech = data.technical || {};
   var signal = data.signal || {};
@@ -6835,4 +7175,279 @@ function displayUsAiPortfolioResult(weights, totalAmount) {
   
   html += '</div>';
   container.innerHTML = html;
+}
+
+
+
+// ==================== 알림 팝업 ====================
+// 알림 컨테이너 생성
+function initNotificationContainer() {
+  if (!document.getElementById('notification-container')) {
+    var container = document.createElement('div');
+    container.id = 'notification-container';
+    container.className = 'notification-container';
+    document.body.appendChild(container);
+  }
+}
+
+// 알림 팝업 표시
+function showNotification(options) {
+  initNotificationContainer();
+  
+  var container = document.getElementById('notification-container');
+  
+  var popup = document.createElement('div');
+  popup.className = 'notification-popup ' + (options.type || '');
+  
+  var icon = options.type === 'profit' ? '🎯' : options.type === 'loss' ? '🛑' : '🔔';
+  
+  popup.innerHTML = 
+    '<div class="notif-header">' +
+      '<span class="notif-title">' + icon + ' ' + (options.title || '알림') + '</span>' +
+      '<button class="notif-close" onclick="closeNotification(this)">×</button>' +
+    '</div>' +
+    '<div class="notif-body">' +
+      '<div>' + (options.stockName || '') + '</div>' +
+      '<div class="notif-price">' + (options.message || '') + '</div>' +
+    '</div>';
+  
+  container.appendChild(popup);
+  
+  // 소리 재생 (선택사항)
+  if (options.sound !== false) {
+    playNotificationSound();
+  }
+  
+  // 브라우저 알림도 함께 표시
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(options.title || '주식 알림', {
+      body: options.stockName + '\n' + options.message,
+      icon: '/favicon.ico'
+    });
+  }
+  
+  // 자동 닫기 (10초 후)
+  setTimeout(function() {
+    if (popup.parentNode) {
+      popup.style.animation = 'slideOut 0.3s ease';
+      setTimeout(function() {
+        if (popup.parentNode) {
+          popup.parentNode.removeChild(popup);
+        }
+      }, 300);
+    }
+  }, 10000);
+}
+
+// 알림 닫기
+function closeNotification(btn) {
+  var popup = btn.closest('.notification-popup');
+  if (popup) {
+    popup.style.animation = 'slideOut 0.3s ease';
+    setTimeout(function() {
+      if (popup.parentNode) {
+        popup.parentNode.removeChild(popup);
+      }
+    }, 300);
+  }
+}
+
+// 알림 소리 재생
+function playNotificationSound() {
+  try {
+    var audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    var oscillator = audioContext.createOscillator();
+    var gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 800;
+    oscillator.type = 'sine';
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.3);
+  } catch (e) {
+    console.log('알림 소리 재생 실패:', e);
+  }
+}
+
+// 브라우저 알림 권한 요청
+function requestNotificationPermission() {
+  if ('Notification' in window) {
+    if (Notification.permission === 'default') {
+      Notification.requestPermission().then(function(permission) {
+        if (permission === 'granted') {
+          showNotification({
+            title: '알림 설정 완료',
+            stockName: '브라우저 알림이 활성화되었습니다.',
+            message: '매도/매수 알림을 받을 수 있습니다.',
+            type: 'profit'
+          });
+        }
+      });
+    }
+  }
+}
+
+
+// ==================== 로그인/회원가입 ====================
+var currentUser = null;
+
+// 모달 열기/닫기
+function openAuthModal() {
+  document.getElementById('auth-modal').style.display = 'flex';
+  showLoginForm();
+}
+
+function closeAuthModal() {
+  document.getElementById('auth-modal').style.display = 'none';
+}
+
+// 폼 전환
+function showLoginForm() {
+  document.getElementById('login-form').style.display = 'block';
+  document.getElementById('register-form').style.display = 'none';
+}
+
+function showRegisterForm() {
+  document.getElementById('login-form').style.display = 'none';
+  document.getElementById('register-form').style.display = 'block';
+}
+
+// 회원가입
+async function handleRegister() {
+  var name = document.getElementById('register-name').value.trim();
+  var email = document.getElementById('register-email').value.trim();
+  var password = document.getElementById('register-password').value;
+  var passwordConfirm = document.getElementById('register-password-confirm').value;
+  
+  if (!name || !email || !password || !passwordConfirm) {
+    alert('모든 필드를 입력해주세요.');
+    return;
+  }
+  
+  if (password !== passwordConfirm) {
+    alert('비밀번호가 일치하지 않습니다.');
+    return;
+  }
+  
+  try {
+    var result = await apiCall('/api/users/register', {
+      method: 'POST',
+      body: JSON.stringify({ name, email, password })
+    });
+    
+    if (result.success) {
+      alert('회원가입 성공! 로그인해주세요.');
+      showLoginForm();
+      document.getElementById('login-email').value = email;
+    } else {
+      alert(result.message || '회원가입 실패');
+    }
+  } catch (error) {
+    console.error('회원가입 오류:', error);
+    alert('서버 오류가 발생했습니다.');
+  }
+}
+
+// 로그인
+async function handleLogin() {
+  var email = document.getElementById('login-email').value.trim();
+  var password = document.getElementById('login-password').value;
+  
+  if (!email || !password) {
+    alert('이메일과 비밀번호를 입력해주세요.');
+    return;
+  }
+  
+  try {
+    var result = await apiCall('/api/users/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
+    });
+    
+    if (result.success) {
+      currentUser = result.user;
+      localStorage.setItem('authToken', result.token);
+      closeAuthModal();
+      updateUserUI();
+      alert('환영합니다, ' + currentUser.name + '님!');
+    } else {
+      alert(result.message || '로그인 실패');
+    }
+  } catch (error) {
+    console.error('로그인 오류:', error);
+    alert('서버 오류가 발생했습니다.');
+  }
+}
+
+// 로그아웃
+async function handleLogout() {
+  var token = localStorage.getItem('authToken');
+  
+  try {
+    await apiCall('/api/users/logout', {
+      method: 'POST',
+      body: JSON.stringify({ token })
+    });
+  } catch (error) {
+    console.error('로그아웃 오류:', error);
+  }
+  
+  currentUser = null;
+  localStorage.removeItem('authToken');
+  updateUserUI();
+  alert('로그아웃 되었습니다.');
+}
+
+// 토큰 검증 (자동 로그인)
+async function verifyToken() {
+  var token = localStorage.getItem('authToken');
+  
+  if (!token) return;
+  
+  try {
+    var result = await apiCall('/api/users/verify', {
+      method: 'POST',
+      body: JSON.stringify({ token })
+    });
+    
+    if (result.success) {
+      currentUser = result.user;
+      updateUserUI();
+    } else {
+      localStorage.removeItem('authToken');
+    }
+  } catch (error) {
+    console.error('토큰 검증 오류:', error);
+    localStorage.removeItem('authToken');
+  }
+}
+
+// UI 업데이트
+function updateUserUI() {
+  var loginBtn = document.getElementById('login-btn');
+  var userInfo = document.getElementById('user-info');
+  
+  if (currentUser) {
+    // 로그인 상태
+    if (loginBtn) loginBtn.style.display = 'none';
+    if (userInfo) {
+      userInfo.style.display = 'flex';
+      userInfo.innerHTML = 
+        '<span class="user-name">' + currentUser.name + '</span>' +
+        '<span class="user-plan ' + (currentUser.plan === 'premium' ? 'premium' : '') + '">' + 
+          (currentUser.plan === 'premium' ? 'Premium' : 'Free') + 
+        '</span>' +
+        '<button class="logout-btn" onclick="handleLogout()">로그아웃</button>';
+    }
+  } else {
+    // 로그아웃 상태
+    if (loginBtn) loginBtn.style.display = 'block';
+    if (userInfo) userInfo.style.display = 'none';
+  }
 }

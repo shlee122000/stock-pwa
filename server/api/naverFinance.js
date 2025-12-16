@@ -300,35 +300,38 @@ async function getMarketCapRanking(market = 0) {
       const url = `https://finance.naver.com/sise/sise_market_sum.naver?sosok=${market}&page=${page}`;
       const html = await httpGet(url);
       
-      // 종목 링크 기준으로 파싱
-      const stockRegex = /code=(\d{6})"[^>]*class="tltle">([^<]+)<\/a>/g;
+      // 각 행(tr)을 찾아서 파싱
+      const rowRegex = /<tr[^>]*>[\s\S]*?<\/tr>/g;
+      let rowMatch;
       
-      let match;
-      const codeList = [];
-      while ((match = stockRegex.exec(html)) !== null) {
-        codeList.push({ code: match[1], name: match[2].trim() });
-      }
-      
-      // 순수 숫자만 있는 td 추출 (내부에 span 없는 것)
-      const numberRegex = /<td class="number">([0-9,]+)<\/td>/g;
-      const numbers = [];
-      while ((match = numberRegex.exec(html)) !== null) {
-        numbers.push(match[1].replace(/,/g, ''));
-      }
-      
-      // 종목당 숫자 필드: 현재가, 액면가, 시가총액, 상장주식수, 거래량 등 (약 6개)
-      const fieldsPerStock = 6;
-      
-      for (let i = 0; i < codeList.length; i++) {
-        const baseIdx = i * fieldsPerStock;
-        if (baseIdx + 2 < numbers.length) {
-          const price = parseInt(numbers[baseIdx]) || 0;         // 현재가
-          const marketCapValue = parseInt(numbers[baseIdx + 2]) || 0; // 시가총액 (억원)
+      while ((rowMatch = rowRegex.exec(html)) !== null) {
+        const row = rowMatch[0];
+        
+        // 종목 코드와 이름 추출
+        const codeMatch = row.match(/code=(\d{6})"[^>]*class="tltle">([^<]+)<\/a>/);
+        if (!codeMatch) continue;
+        
+        const code = codeMatch[1];
+        const name = codeMatch[2].trim();
+        
+        // 해당 행에서 모든 숫자 추출 (number 클래스)
+        const numberRegex = /<td class="number">([0-9,]+)<\/td>/g;
+        const numbers = [];
+        let numMatch;
+        
+        while ((numMatch = numberRegex.exec(row)) !== null) {
+          numbers.push(parseInt(numMatch[1].replace(/,/g, '')) || 0);
+        }
+        
+        // numbers[0] = 현재가, numbers[1] = 액면가, numbers[2] = 시가총액, numbers[3] = 상장주식수
+        if (numbers.length >= 3) {
+          const price = numbers[0];
+          const marketCapValue = numbers[2];
           
           if (price > 0 && marketCapValue > 0) {
             stocks.push({
-              code: codeList[i].code,
-              name: codeList[i].name,
+              code: code,
+              name: name,
               price: price,
               marketCap: marketCapValue,
               marketCapText: marketCapValue.toLocaleString() + '억'
@@ -349,6 +352,8 @@ async function getMarketCapRanking(market = 0) {
     return [];
   }
 }
+
+
 
 /**
  * 환율 조회 (USD/KRW)

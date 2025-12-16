@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const db = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,10 +24,17 @@ app.use(express.static(path.join(__dirname, '../public'), {
 const koreaRoutes = require('./routes/korea');
 const usRoutes = require('./routes/us');
 const analysisRoutes = require('./routes/analysis');
+const usersRoutes = require('./api/users');
+const watchlistRoutes = require('./api/watchlist');
+const portfolioRoutes = require('./api/portfolio');
 
 app.use('/api/korea', koreaRoutes);
 app.use('/api/us', usRoutes);
 app.use('/api/analysis', analysisRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/watchlist', watchlistRoutes);
+app.use('/api/portfolio', portfolioRoutes);
+
 
 // 기본 라우트 (SPA)
 app.get('*', (req, res) => {

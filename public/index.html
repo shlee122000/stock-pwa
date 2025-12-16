@@ -36,6 +36,16 @@
         <button class="nav-item" data-tab="ai-lesson">🤖 AI 레슨</button>
       </nav>
       
+
+      <!-- 로그인 영역 -->
+      <div style="margin-top:20px;">
+        <button id="login-btn" class="nav-item" onclick="openAuthModal()" style="width:100%; background:rgba(59,130,246,0.3);">
+          🔐 로그인
+        </button>
+        <div id="user-info" class="user-info" style="display:none;"></div>
+      </div>
+
+
      <!-- 환율 정보 (사이드바) -->
       <div class="exchange-rate-box">
         <h4>💱 환율</h4>
@@ -96,7 +106,12 @@
       </section>
       <!-- 종목 검색 -->
       <section id="tab-search" class="tab-content">
-        <h2>🔍 종목 검색</h2>
+        <div class="tab-header">
+          <button class="back-btn" onclick="goBack()">
+            <span class="back-icon">←</span> 뒤로
+          </button>
+          <h2>🔍 종목 검색</h2>
+        </div>
         <div class="search-box">
           <input type="text" id="stock-search-input" placeholder="종목명 또는 코드 입력">
           <button id="stock-search-btn">검색</button>
@@ -114,7 +129,7 @@
             <p>테마 목록을 불러와 주세요.</p>
           </div>
         </div>
-        <div class="card" id="theme-stocks-card" style="display:none;">
+        <div class="card" id="theme-stocks-card" style="display:none; overflow-x:auto;">
           <h3>📈 <span id="selected-theme-name">테마</span> 종목</h3>
           <div id="theme-stocks-container"></div>
         </div>
@@ -126,16 +141,24 @@
       
       <!-- 기술적 분석 -->
       <section id="tab-analysis" class="tab-content">
-        <h2>📊 기술적 분석</h2>
+        <div class="tab-header">
+          <button class="back-btn" onclick="goBack()">
+            <span class="back-icon">←</span> 뒤로
+          </button>
+          <h2>📊 기술적 분석</h2>
+        </div>
         <div class="search-box">
           <input type="text" id="analysis-stock-code" placeholder="종목코드 입력 (예: 005930)">
           <button id="run-analysis-btn">분석 시작</button>
+          <button id="go-signals-btn" class="btn-success">🚦 매매신호</button>
           <button id="news-btn" class="btn-secondary">📰 뉴스</button>
         </div>
         <div class="card" style="margin-top:20px;">
           <h3>📈 주가 차트</h3>
-          <div class="chart-container">
-            <canvas id="stock-chart"></canvas>
+          <div class="chart-wrapper">
+            <div class="chart-container">
+              <canvas id="stock-chart"></canvas>
+            </div>
           </div>
         </div>
         <div id="analysis-result" class="result-area"></div>
@@ -147,7 +170,12 @@
       
       <!-- 매매 신호 -->
       <section id="tab-signals" class="tab-content">
-        <h2>🚦 매매 신호</h2>
+        <div class="tab-header">
+          <button class="back-btn" onclick="goBack()">
+            <span class="back-icon">←</span> 뒤로
+          </button>
+          <h2>🚦 매매 신호</h2>
+        </div>
         <div class="search-box">
           <input type="text" id="signal-stock-code" placeholder="종목코드 입력 (예: 005930)">
           <button id="generate-signal-btn">신호 생성</button>
@@ -176,7 +204,12 @@
       
       <!-- 미국 주식 -->
       <section id="tab-us-stock" class="tab-content">
-        <h2>🇺🇸 미국 주식</h2>
+        <div class="tab-header">
+          <button class="back-btn" onclick="goBack()">
+            <span class="back-icon">←</span> 뒤로
+          </button>
+          <h2>🇺🇸 미국 주식</h2>
+        </div>
         <div class="search-box">
           <input type="text" id="us-stock-input" placeholder="종목명 또는 심볼 (예: AAPL, TSLA)">
           <button id="us-stock-search-btn">검색</button>
@@ -184,8 +217,10 @@
         <div id="us-search-results" class="result-area" style="margin-bottom:20px;"></div>
         <div class="card" id="us-chart-card" style="display:none;">
           <h3>📈 주가 차트</h3>
-          <div class="chart-container">
-            <canvas id="us-stock-chart"></canvas>
+          <div class="chart-wrapper">
+            <div class="chart-container">
+              <canvas id="us-stock-chart"></canvas>
+            </div>
           </div>
         </div>
         <div id="us-stock-result" class="result-area"></div>
@@ -242,7 +277,12 @@
       
       <!-- 내 포트폴리오 -->
       <section id="tab-portfolio" class="tab-content">
-        <h2>💼 내 포트폴리오</h2>
+        <div class="tab-header">
+          <button class="back-btn" onclick="goBack()">
+            <span class="back-icon">←</span> 뒤로
+          </button>
+          <h2>💼 내 포트폴리오</h2>
+        </div>
         <div class="card">
           <h3>📝 보유 주식 등록</h3>
           <div class="search-box">
@@ -431,7 +471,12 @@
 
       <!-- 종목 찾기 -->
       <section id="tab-stock-finder" class="tab-content">
-        <h2>🔍 매수 종목 찾기</h2>
+        <div class="tab-header">
+          <button class="back-btn" onclick="goBack()">
+            <span class="back-icon">←</span> 뒤로
+          </button>
+          <h2>🔍 매수 종목 찾기</h2>
+        </div>
         
         <div class="card">
           <h3>🔥 Hot 테마 TOP 10</h3>
@@ -499,7 +544,12 @@
 
       <!-- AI 원포인트 레슨 -->
       <section id="tab-ai-lesson" class="tab-content">
-        <h2>🤖 AI 원포인트 레슨</h2>
+        <div class="tab-header">
+          <button class="back-btn" onclick="goBack()">
+            <span class="back-icon">←</span> 뒤로
+          </button>
+          <h2>🤖 AI 원포인트 레슨</h2>
+        </div>
         <p style="color:#666; margin-bottom:20px;">AI가 시가총액별, 테마별로 종목을 분석하여 객관적인 점수를 제공합니다</p>
         
         <!-- 시가총액별 TOP 10 -->
@@ -535,6 +585,7 @@
             <input type="text" id="ai-stock-input" placeholder="종목명 또는 종목코드 입력">
             <button id="ai-analyze-btn">AI 분석</button>
           </div>
+          <div id="ai-direct-search-result" style="margin-top:15px;"></div>
         </div>
         
         <!-- AI 매매 타이밍 -->
@@ -620,7 +671,7 @@
   </div>
   
   <!-- JavaScript -->
-  <script src="/js/app.js?v=29"></script>
+  <script src="/js/app.js?v=40"></script>
 
   
   <script>
@@ -637,6 +688,71 @@
     });
   }
 </script>
+
+<!-- 모바일 하단 고정 메뉴바 -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-items">
+    <button class="bottom-nav-item" onclick="toggleMobileMenu()">
+      <span class="nav-icon">☰</span>
+      <span>메뉴</span>
+    </button>
+    <button class="bottom-nav-item active" onclick="switchTab('dashboard')">
+      <span class="nav-icon">🏠</span>
+      <span>홈</span>
+    </button>
+    <button class="bottom-nav-item" onclick="switchTab('search')">
+      <span class="nav-icon">🇰🇷</span>
+      <span>한국</span>
+    </button>
+    <button class="bottom-nav-item" onclick="switchTab('us-stock')">
+      <span class="nav-icon">🇺🇸</span>
+      <span>미국</span>
+    </button>
+    <button class="bottom-nav-item" onclick="switchTab('ai-lesson')">
+      <span class="nav-icon">🤖</span>
+      <span>AI</span>
+    </button>
+    <button class="bottom-nav-item" onclick="switchTab('portfolio')">
+      <span class="nav-icon">💼</span>
+      <span>포트폴리오</span>
+    </button>
+  </div>
+</nav>
+
+<!-- 로그인/회원가입 모달 -->
+<div id="auth-modal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeAuthModal()">×</button>
+    
+    <!-- 로그인 폼 -->
+    <div id="login-form">
+      <h2>🔐 로그인</h2>
+      <div class="auth-form">
+        <input type="email" id="login-email" placeholder="이메일">
+        <input type="password" id="login-password" placeholder="비밀번호">
+        <button class="btn-primary" onclick="handleLogin()">로그인</button>
+      </div>
+      <p class="auth-switch">
+        계정이 없으신가요? <a href="#" onclick="showRegisterForm()">회원가입</a>
+      </p>
+    </div>
+    
+    <!-- 회원가입 폼 -->
+    <div id="register-form" style="display:none;">
+      <h2>📝 회원가입</h2>
+      <div class="auth-form">
+        <input type="text" id="register-name" placeholder="이름">
+        <input type="email" id="register-email" placeholder="이메일">
+        <input type="password" id="register-password" placeholder="비밀번호 (6자 이상)">
+        <input type="password" id="register-password-confirm" placeholder="비밀번호 확인">
+        <button class="btn-primary" onclick="handleRegister()">회원가입</button>
+      </div>
+      <p class="auth-switch">
+        이미 계정이 있으신가요? <a href="#" onclick="showLoginForm()">로그인</a>
+      </p>
+    </div>
+  </div>
+</div>
 
 
 </body>
