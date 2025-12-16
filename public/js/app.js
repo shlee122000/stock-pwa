@@ -7375,8 +7375,15 @@ async function handleLogin() {
       localStorage.setItem('authToken', result.token);
       closeAuthModal();
       updateUserUI();
+      
+      // 로그인 후 데이터 자동 로드
+      loadPortfolio();
+      loadWatchlist();
+      
       alert('환영합니다, ' + currentUser.name + '님!');
-    } else {
+    }
+
+    else {
       alert(result.message || '로그인 실패');
     }
   } catch (error) {
