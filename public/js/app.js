@@ -356,7 +356,31 @@ function hideLoading() {
 }
 
 // ==================== API 호출 ====================
-async function apiCall(endpoint, options) {
+async function apiCall(endpoint, options, useCache = true) {
+  // 캐시 타입 결정
+  var cacheType = 'default';
+  
+  if (endpoint.includes('/stock/')) cacheType = 'stock-quote';
+  else if (endpoint.includes('/chart/')) cacheType = 'stock-chart';
+  else if (endpoint.includes('/analysis/')) cacheType = 'stock-analysis';
+  else if (endpoint.includes('/news/')) cacheType = 'news';
+  else if (endpoint.includes('/theme')) cacheType = 'theme';
+  else if (endpoint.includes('/market-index')) cacheType = 'market-index';
+  else if (endpoint.includes('/exchange')) cacheType = 'exchange-rate';
+  else if (endpoint.includes('/us/quote/')) cacheType = 'us-quote';
+  else if (endpoint.includes('/us/analysis/')) cacheType = 'us-analysis';
+  
+  // POST 요청은 캐싱하지 않음
+  if (options && options.method !== 'GET') {
+    useCache = false;
+  }
+  
+  // 캐싱된 API 호출
+  if (useCache && typeof cachedApiCall !== 'undefined') {
+    return await cachedApiCall(cacheType, endpoint, options);
+  }
+  
+  // 폴백: 일반 API 호출
   try {
     var fetchOptions = {
       headers: {
@@ -364,13 +388,11 @@ async function apiCall(endpoint, options) {
       }
     };
     
-    // options가 있으면 병합
     if (options) {
       fetchOptions.method = options.method || 'GET';
       if (options.body) {
         fetchOptions.body = options.body;
       }
-      // headers 병합
       if (options.headers) {
         for (var key in options.headers) {
           fetchOptions.headers[key] = options.headers[key];
@@ -385,7 +407,6 @@ async function apiCall(endpoint, options) {
     return { success: false, error: error.message };
   }
 }
-
 
 
 // ==================== 환율 ====================
