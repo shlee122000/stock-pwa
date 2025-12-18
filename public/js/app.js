@@ -76,14 +76,35 @@ document.addEventListener('DOMContentLoaded', function() {
   verifyToken();
 });
 
+// 검색 debounce용 타이머
+var searchDebounceTimer = null;
+
 
 // ==================== 이벤트 리스너 ====================
 function initEventListeners() {
-  // 종목 검색
-  document.getElementById('stock-search-btn').addEventListener('click', handleStockSearch);
-  document.getElementById('stock-search-input').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') handleStockSearch();
-  });
+  console.log('🔵 initEventListeners 호출됨');
+
+// ===== 한국 종목 검색 =====
+  var searchInput = document.getElementById('stock-search-input');
+  var searchBtn = document.getElementById('stock-search-btn');
+  
+  if (!searchInput || !searchBtn) {
+    console.error('검색 요소를 찾을 수 없습니다!');
+    return;
+  }
+  
+  // 이벤트 등록 (중복되어도 removeEventListener가 처리)
+  searchBtn.removeEventListener('click', handleStockSearch);
+  searchInput.removeEventListener('input', debounceStockSearch);
+  searchInput.removeEventListener('keypress', handleSearchEnter);
+  
+  searchBtn.addEventListener('click', handleStockSearch);
+  searchInput.addEventListener('input', debounceStockSearch);
+  searchInput.addEventListener('keypress', handleSearchEnter);
+  
+  console.log('✅ 검색 이벤트 등록 완료');
+  
+  
 
   // 기술적 분석
   document.getElementById('run-analysis-btn').addEventListener('click', handleTechnicalAnalysis);
@@ -432,11 +453,26 @@ async function loadExchangeRate() {
   }
 }
 
+function debounceStockSearch() {
+  console.log('🟢 debounce 실행');
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(handleStockSearch, 500);
+}
+
+function handleSearchEnter(e) {
+  if (e.key === 'Enter') {
+    clearTimeout(searchDebounceTimer);
+    handleStockSearch();
+  }
+}
+
+
 // ==================== 종목 검색 ====================
 async function handleStockSearch() {
+  console.log('🔴 handleStockSearch 실행');
+  
   var keyword = document.getElementById('stock-search-input').value.trim();
   if (!keyword) {
-    alert('검색어를 입력하세요.');
     return;
   }
 
