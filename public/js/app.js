@@ -1882,6 +1882,9 @@ async function loadDashboard() {
 
   // 환율 정보
   loadDashboardExchange();
+  
+  // 성능 모니터링 업데이트
+  setTimeout(updatePerformanceMonitor, 1000);
 }
 
 
