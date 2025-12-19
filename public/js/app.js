@@ -1649,14 +1649,19 @@ async function removeFromPortfolio(id) {
 }
 
 
-
-
-// ==================== 대시보드 ====================
+// ==================== 대시보드 (최적화 버전) ====================
 async function loadDashboard() {
-  // 오늘의 시장
+  // ========== 1단계: 초기 데이터 병렬 로딩 ==========
   try {
-    var marketResult = await apiCall('/api/korea/market-index');
-    
+    // 4개 API를 동시에 호출 (병렬 처리)
+    var [marketResult, kospiResult, kosdaqResult, newsResult] = await Promise.all([
+      apiCall('/api/korea/market-index'),
+      apiCall('/api/korea/market-cap/0'),
+      apiCall('/api/korea/market-cap/1'),
+      apiCall('/api/korea/news/' + encodeURIComponent('증시 주식시장'))
+    ]);
+
+    // ========== 시장 정보 표시 ==========
     if (marketResult.success && marketResult.data) {
       var data = marketResult.data;
       var marketHtml = '<div class="indicators-grid">';
@@ -1685,19 +1690,34 @@ async function loadDashboard() {
     } else {
       document.getElementById('market-summary').innerHTML = '<p>시장 정보를 불러올 수 없습니다.</p>';
     }
+
+    // ========== 주요 뉴스 표시 ==========
+    if (newsResult.success && newsResult.data && newsResult.data.length > 0) {
+      var newsHtml = '<ul style="list-style:none; padding:0; margin:0;">';
+      
+      newsResult.data.slice(0, 5).forEach(function(item) {
+        newsHtml += '<li style="padding:8px 0; border-bottom:1px solid #eee;">';
+        newsHtml += '<a href="' + item.link + '" target="_blank" style="color:#1e40af; text-decoration:none;">';
+        newsHtml += item.title;
+        newsHtml += '</a>';
+        newsHtml += '</li>';
+      });
+      
+      newsHtml += '</ul>';
+      document.getElementById('main-news').innerHTML = newsHtml;
+    } else {
+      document.getElementById('main-news').innerHTML = '<p>뉴스를 불러올 수 없습니다.</p>';
+    }
+
   } catch (error) {
-    console.error('시장 정보 오류:', error);
+    console.error('초기 데이터 로딩 오류:', error);
     document.getElementById('market-summary').innerHTML = '<p>시장 정보를 불러올 수 없습니다.</p>';
+    document.getElementById('main-news').innerHTML = '<p>뉴스를 불러올 수 없습니다.</p>';
   }
 
-
-// 추천 종목 (대형주/중형주/소형주 TOP 2)
+  // ========== 2단계: 추천 종목 분석 (기존 방식 유지) ==========
   try {
     document.getElementById('recommended-stocks').innerHTML = '<p>🤖 AI 분석 중...</p>';
-    
-    // KOSPI + KOSDAQ 시가총액 데이터 조회
-    var kospiResult = await apiCall('/api/korea/market-cap/0');
-    var kosdaqResult = await apiCall('/api/korea/market-cap/1');
     
     var allStocks = [];
     if (kospiResult.success && kospiResult.data) {
@@ -1799,32 +1819,7 @@ async function loadDashboard() {
     document.getElementById('recommended-stocks').innerHTML = '<p>데이터를 불러올 수 없습니다.</p>';
   }
 
-  // 주요 뉴스
-  try {
-    var newsResult = await apiCall('/api/korea/news/' + encodeURIComponent('증시 주식시장'));
-    
-    if (newsResult.success && newsResult.data && newsResult.data.length > 0) {
-      var newsHtml = '<ul style="list-style:none; padding:0; margin:0;">';
-      
-      newsResult.data.slice(0, 5).forEach(function(item) {
-        newsHtml += '<li style="padding:8px 0; border-bottom:1px solid #eee;">';
-        newsHtml += '<a href="' + item.link + '" target="_blank" style="color:#1e40af; text-decoration:none;">';
-        newsHtml += item.title;
-        newsHtml += '</a>';
-        newsHtml += '</li>';
-      });
-      
-      newsHtml += '</ul>';
-      document.getElementById('main-news').innerHTML = newsHtml;
-    } else {
-      document.getElementById('main-news').innerHTML = '<p>뉴스를 불러올 수 없습니다.</p>';
-    }
-  } catch (error) {
-    console.error('뉴스 오류:', error);
-    document.getElementById('main-news').innerHTML = '<p>뉴스를 불러올 수 없습니다.</p>';
-  }
-
-
+  // ========== 3단계: 나머지 정보 로딩 ==========
   // 포트폴리오 요약
   loadDashboardPortfolio();
 
@@ -1834,6 +1829,8 @@ async function loadDashboard() {
   // 환율 정보
   loadDashboardExchange();
 }
+
+
 
 
 
