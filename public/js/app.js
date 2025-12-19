@@ -151,6 +151,12 @@ function initEventListeners() {
     if (e.key === 'Enter') handleUsStockSearch();
   });
   document.getElementById('add-us-watchlist-btn').addEventListener('click', handleAddUsWatchlist);
+  
+  // 미국 관심종목 직접 추가
+  document.getElementById('us-watchlist-add-btn').addEventListener('click', handleAddUsWatchlistDirect);
+  document.getElementById('us-watchlist-add-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') handleAddUsWatchlistDirect();
+  });
 
   // 미국 주식 분석
   document.getElementById('us-analysis-btn').addEventListener('click', handleUsAnalysis);
@@ -1215,6 +1221,51 @@ function handleAddUsWatchlist() {
   document.getElementById('us-watchlist-btn-area').style.display = 'none';
 }
 
+
+// 미국 관심종목 직접 추가 (입력창에서)
+async function handleAddUsWatchlistDirect() {
+  var symbol = document.getElementById('us-watchlist-add-input').value.trim().toUpperCase();
+  
+  if (!symbol) {
+    alert('심볼을 입력하세요.');
+    return;
+  }
+  
+  // 중복 체크
+  if (usWatchlist.find(function(item) { return item.symbol === symbol; })) {
+    alert('이미 관심 종목에 있습니다.');
+    return;
+  }
+  
+  // 종목 정보 조회
+  showLoading();
+  try {
+    var result = await apiCall('/api/us/quote/' + symbol);
+    
+    if (result.success && result.data) {
+      usWatchlist.push({
+        symbol: symbol,
+        name: result.data.name || symbol,
+        addedAt: new Date().toISOString()
+      });
+      
+      localStorage.setItem('usWatchlist', JSON.stringify(usWatchlist));
+      alert(symbol + ' 추가되었습니다!');
+      
+      // 입력창 초기화
+      document.getElementById('us-watchlist-add-input').value = '';
+      
+      // 목록 새로고침
+      loadUsWatchlist();
+    } else {
+      alert('종목을 찾을 수 없습니다. 심볼을 확인하세요.');
+    }
+  } catch (error) {
+    console.error('미국 관심종목 추가 오류:', error);
+    alert('오류가 발생했습니다.');
+  }
+  hideLoading();
+}
 
 
 async function loadUsWatchlist() {
