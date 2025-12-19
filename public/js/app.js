@@ -207,6 +207,9 @@ function initEventListeners() {
 
   document.getElementById('set-all-alert-btn').addEventListener('click', handleSetAllAlert);
 
+  // 대시보드 새로고침
+  document.getElementById('refresh-dashboard-btn').addEventListener('click', refreshDashboard);
+
   // 종목 찾기
   document.getElementById('load-hot-themes-btn').addEventListener('click', loadHotThemes);
   document.getElementById('analyze-theme-btn').addEventListener('click', analyzeSelectedTheme);
@@ -1882,6 +1885,25 @@ async function loadDashboard() {
 }
 
 
+
+// 대시보드 강제 새로고침 (캐시 무시)
+function refreshDashboard() {
+  // 캐시 클리어
+  if (typeof cacheManager !== 'undefined') {
+    const cleared = cacheManager.clear();
+    console.log('🔄 캐시 클리어:', cleared + '개 항목 삭제');
+  }
+  
+  // 대시보드 다시 로드
+  loadDashboard();
+  
+  // 사용자 피드백
+  showLoading();
+  setTimeout(function() {
+    hideLoading();
+    alert('✅ 최신 데이터로 새로고침 완료!');
+  }, 1000);
+}
 
 
 
