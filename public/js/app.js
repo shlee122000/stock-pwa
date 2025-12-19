@@ -1882,6 +1882,9 @@ async function loadDashboard() {
 
   // 환율 정보
   loadDashboardExchange();
+  
+  // 성능 모니터링 업데이트
+  setTimeout(updatePerformanceMonitor, 1000);
 }
 
 
@@ -1905,6 +1908,39 @@ function refreshDashboard() {
   }, 1000);
 }
 
+
+// 성능 모니터링 패널 토글
+function togglePerformancePanel() {
+  var panel = document.getElementById('performance-panel');
+  var toggle = document.getElementById('performance-toggle');
+  
+  if (panel.style.display === 'none') {
+    panel.style.display = 'block';
+    toggle.textContent = '▼';
+  } else {
+    panel.style.display = 'none';
+    toggle.textContent = '▶';
+  }
+}
+
+// 성능 모니터링 데이터 업데이트
+function updatePerformanceMonitor() {
+  if (typeof cacheManager === 'undefined') return;
+  
+  // 요소가 존재하는지 확인
+  var hitRateEl = document.getElementById('perf-hit-rate');
+  if (!hitRateEl) return;
+  
+  var stats = cacheManager.getStats();
+  
+  document.getElementById('perf-hit-rate').textContent = stats.hitRate;
+  document.getElementById('perf-cache-size').textContent = stats.size;
+  document.getElementById('perf-api-calls').textContent = stats.misses;
+  document.getElementById('perf-memory').textContent = stats.memory;
+}
+
+// 주기적으로 성능 모니터링 업데이트 (5초마다)
+setInterval(updatePerformanceMonitor, 5000);
 
 
 // ==================== 매도 알림 ====================
