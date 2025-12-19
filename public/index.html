@@ -107,6 +107,43 @@
             <div id="main-news">로딩 중...</div>
           </div>
           
+          <!-- 성능 모니터링 패널 -->
+          <div class="card" style="border: 2px solid #3b82f6;">
+            <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="togglePerformancePanel()">
+              <h3 style="margin: 0;">📊 성능 모니터링</h3>
+              <span id="performance-toggle" style="font-size: 1.5rem;">▼</span>
+            </div>
+            <div id="performance-panel" style="margin-top: 15px;">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                
+                <div style="padding: 15px; background: #f0f9ff; border-radius: 8px;">
+                  <div style="font-size: 0.9rem; color: #64748b; margin-bottom: 5px;">캐시 적중률</div>
+                  <div id="perf-hit-rate" style="font-size: 1.5rem; font-weight: bold; color: #3b82f6;">0%</div>
+                </div>
+                
+                <div style="padding: 15px; background: #f0fdf4; border-radius: 8px;">
+                  <div style="font-size: 0.9rem; color: #64748b; margin-bottom: 5px;">캐시 항목 수</div>
+                  <div id="perf-cache-size" style="font-size: 1.5rem; font-weight: bold; color: #10b981;">0</div>
+                </div>
+                
+                <div style="padding: 15px; background: #fef3c7; border-radius: 8px;">
+                  <div style="font-size: 0.9rem; color: #64748b; margin-bottom: 5px;">API 호출 (캐시 미스)</div>
+                  <div id="perf-api-calls" style="font-size: 1.5rem; font-weight: bold; color: #f59e0b;">0</div>
+                </div>
+                
+                <div style="padding: 15px; background: #fce7f3; border-radius: 8px;">
+                  <div style="font-size: 0.9rem; color: #64748b; margin-bottom: 5px;">메모리 사용</div>
+                  <div id="perf-memory" style="font-size: 1.5rem; font-weight: bold; color: #ec4899;">0 KB</div>
+                </div>
+                
+              </div>
+              
+              <div style="margin-top: 15px; padding: 10px; background: #f8fafc; border-radius: 8px; font-size: 0.85rem; color: #64748b;">
+                <strong>💡 팁:</strong> 캐시 적중률이 높을수록 성능이 좋습니다. 새로고침 버튼을 누르면 캐시가 초기화됩니다.
+              </div>
+            </div>
+          </div>
+          
         </div>
       </section>
       <!-- 종목 검색 -->
