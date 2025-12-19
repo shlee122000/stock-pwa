@@ -429,10 +429,14 @@ tr:hover {
     grid-template-columns: 1fr;
   }
   
+
+
+
   /* 인디케이터 그리드 */
   .indicators-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  
   
   /* 카드 */
   .card {
