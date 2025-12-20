@@ -56,6 +56,24 @@ let usPortfolio = JSON.parse(localStorage.getItem('usPortfolio')) || [];
 let usAlertList = JSON.parse(localStorage.getItem('usAlertList')) || [];
 
 
+// 이동평균선 계산 함수
+function calculateMA(data, period) {
+  var result = [];
+  for (var i = 0; i < data.length; i++) {
+    if (i < period - 1) {
+      result.push({ time: data[i].time, value: null });
+    } else {
+      var sum = 0;
+      for (var j = i - period + 1; j <= i; j++) {
+        sum += data[j].close;
+      }
+      result.push({ time: data[i].time, value: sum / period });
+    }
+  }
+  return result.filter(function(item) { return item.value !== null; });
+}
+
+
 // ==================== TradingView 차트 ====================
 function createTradingViewChart(containerId, data, isKorean) {
   try {
@@ -130,7 +148,38 @@ var chartData = data.map(function(item) {
     chartData.sort(function(a, b) { return a.time - b.time; });
     
     candlestickSeries.setData(chartData);
-    
+
+    // 이동평균선 추가
+    // MA 5 (빨간색 - 단기)
+    var ma5Series = chart.addSeries(LightweightCharts.LineSeries, {
+      color: '#ef4444',
+      lineWidth: 1,
+      title: 'MA5',
+      priceLineVisible: false,
+      lastValueVisible: false
+    });
+    ma5Series.setData(calculateMA(chartData, 5));
+
+    // MA 20 (주황색 - 중기)
+    var ma20Series = chart.addSeries(LightweightCharts.LineSeries, {
+      color: '#f59e0b',
+      lineWidth: 1,
+      title: 'MA20',
+      priceLineVisible: false,
+      lastValueVisible: false
+    });
+    ma20Series.setData(calculateMA(chartData, 20));
+
+    // MA 60 (초록색 - 장기)
+    var ma60Series = chart.addSeries(LightweightCharts.LineSeries, {
+      color: '#10b981',
+      lineWidth: 1,
+      title: 'MA60',
+      priceLineVisible: false,
+      lastValueVisible: false
+    });
+    ma60Series.setData(calculateMA(chartData, 60));
+
     // 차트 자동 크기 조절
     chart.timeScale().fitContent();
     
