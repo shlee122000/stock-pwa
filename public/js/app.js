@@ -74,6 +74,110 @@ function calculateMA(data, period) {
 }
 
 
+// RSI 계산 함수
+function calculateRSI(data, period) {
+  var result = [];
+  var gains = [];
+  var losses = [];
+  
+  for (var i = 1; i < data.length; i++) {
+    var change = data[i].close - data[i - 1].close;
+    gains.push(change > 0 ? change : 0);
+    losses.push(change < 0 ? Math.abs(change) : 0);
+  }
+  
+  for (var i = 0; i < data.length; i++) {
+    if (i < period) {
+      result.push({ time: data[i].time, value: null });
+    } else {
+      var avgGain = 0;
+      var avgLoss = 0;
+      
+      for (var j = i - period; j < i; j++) {
+        avgGain += gains[j] || 0;
+        avgLoss += losses[j] || 0;
+      }
+      avgGain /= period;
+      avgLoss /= period;
+      
+      var rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+      var rsi = 100 - (100 / (1 + rs));
+      
+      result.push({ time: data[i].time, value: rsi });
+    }
+  }
+  
+  return result.filter(function(item) { return item.value !== null; });
+}
+
+// MACD 계산 함수
+function calculateMACD(data, fastPeriod, slowPeriod, signalPeriod) {
+  // EMA 계산 함수
+  function calcEMA(prices, period) {
+    var ema = [];
+    var multiplier = 2 / (period + 1);
+    
+    // 첫 번째 EMA는 SMA로 계산
+    var sum = 0;
+    for (var i = 0; i < period; i++) {
+      sum += prices[i];
+    }
+    ema[period - 1] = sum / period;
+    
+    // 이후 EMA 계산
+    for (var i = period; i < prices.length; i++) {
+      ema[i] = (prices[i] - ema[i - 1]) * multiplier + ema[i - 1];
+    }
+    
+    return ema;
+  }
+  
+  var closes = data.map(function(d) { return d.close; });
+  var ema12 = calcEMA(closes, fastPeriod);
+  var ema26 = calcEMA(closes, slowPeriod);
+  
+  // MACD 라인 계산
+  var macdLine = [];
+  for (var i = 0; i < closes.length; i++) {
+    if (ema12[i] !== undefined && ema26[i] !== undefined) {
+      macdLine[i] = ema12[i] - ema26[i];
+    }
+  }
+  
+  // 시그널 라인 (MACD의 EMA)
+  var validMacd = macdLine.filter(function(v) { return v !== undefined; });
+  var signalLine = calcEMA(validMacd, signalPeriod);
+  
+  // 결과 생성
+  var result = {
+    macd: [],
+    signal: [],
+    histogram: []
+  };
+  
+  var signalIndex = 0;
+  for (var i = 0; i < data.length; i++) {
+    if (macdLine[i] !== undefined) {
+      var macdValue = macdLine[i];
+      var signalValue = signalLine[signalIndex] || macdValue;
+      var histValue = macdValue - signalValue;
+      
+      result.macd.push({ time: data[i].time, value: macdValue });
+      result.signal.push({ time: data[i].time, value: signalValue });
+      result.histogram.push({ 
+        time: data[i].time, 
+        value: histValue,
+        color: histValue >= 0 ? '#ef4444' : '#3b82f6'
+      });
+      
+      signalIndex++;
+    }
+  }
+  
+  return result;
+}
+
+
 // ==================== TradingView 차트 ====================
 function createTradingViewChart(containerId, data, isKorean) {
   try {
@@ -123,26 +227,26 @@ function createTradingViewChart(containerId, data, isKorean) {
     });
     
   // 데이터 변환 (날짜를 YYYY-MM-DD 형식으로)
-var chartData = data.map(function(item) {
-  // 날짜 형식 변환: YYYYMMDD → YYYY-MM-DD
-  var dateStr = item.date || item.time;
-  var formattedDate = dateStr;
-  
-  // YYYYMMDD 형식이면 YYYY-MM-DD로 변환
-  if (dateStr && dateStr.length === 8 && !dateStr.includes('-')) {
-    formattedDate = dateStr.substring(0, 4) + '-' + 
-                    dateStr.substring(4, 6) + '-' + 
-                    dateStr.substring(6, 8);
-  }
-  
-  return {
-    time: formattedDate,
-    open: parseFloat(item.open || item.close),
-    high: parseFloat(item.high || item.close),
-    low: parseFloat(item.low || item.close),
-    close: parseFloat(item.close)
-  };
-});
+    var chartData = data.map(function(item) {
+      // 날짜 형식 변환: YYYYMMDD → YYYY-MM-DD
+      var dateStr = item.date || item.time;
+      var formattedDate = dateStr;
+      
+      // YYYYMMDD 형식이면 YYYY-MM-DD로 변환
+      if (dateStr && dateStr.length === 8 && !dateStr.includes('-')) {
+        formattedDate = dateStr.substring(0, 4) + '-' + 
+                        dateStr.substring(4, 6) + '-' + 
+                        dateStr.substring(6, 8);
+      }
+      
+      return {
+        time: formattedDate,
+        open: parseFloat(item.open || item.close),
+        high: parseFloat(item.high || item.close),
+        low: parseFloat(item.low || item.close),
+        close: parseFloat(item.close)
+      };
+    });
     
     // 시간순 정렬
     chartData.sort(function(a, b) { return a.time - b.time; });
@@ -182,44 +286,44 @@ var chartData = data.map(function(item) {
 
 
     // 거래량 차트 추가
-var volumeSeries = chart.addSeries(LightweightCharts.HistogramSeries, {
-  color: '#26a69a',
-  priceFormat: {
-    type: 'volume'
-  },
-  priceScaleId: 'volume',
-  title: 'Vol'
-});
+    var volumeSeries = chart.addSeries(LightweightCharts.HistogramSeries, {
+      color: '#26a69a',
+      priceFormat: {
+        type: 'volume'
+      },
+      priceScaleId: 'volume',
+      title: 'Vol'
+    });
 
-// 거래량 스케일 설정 (차트 하단 30% 영역)
-chart.priceScale('volume').applyOptions({
-  scaleMargins: {
-    top: 0.7,
-    bottom: 0
-  },
-  visible: false
-});
+    // 거래량 스케일 설정 (차트 하단 30% 영역)
+    chart.priceScale('volume').applyOptions({
+      scaleMargins: {
+        top: 0.7,
+        bottom: 0
+      },
+      visible: false
+    });
 
-// 거래량 데이터 (상승=빨강, 하락=파랑)
-var volumeData = chartData.map(function(item, index) {
-  var color = '#3b82f6';  // 기본 파랑 (하락)
-  if (index > 0 && item.close >= chartData[index - 1].close) {
-    color = '#ef4444';  // 빨강 (상승)
-  }
-  
-  // 원본 데이터에서 거래량 가져오기
-  var vol = 0;
-  if (data[index] && data[index].volume) {
-    vol = data[index].volume;
-  }
-  
-  return {
-    time: item.time,
-    value: vol,
-    color: color
-  };
-});
-volumeSeries.setData(volumeData);
+    // 거래량 데이터 (상승=빨강, 하락=파랑)
+    var volumeData = chartData.map(function(item, index) {
+      var color = '#3b82f6';  // 기본 파랑 (하락)
+      if (index > 0 && item.close >= chartData[index - 1].close) {
+        color = '#ef4444';  // 빨강 (상승)
+      }
+      
+      // 원본 데이터에서 거래량 가져오기
+      var vol = 0;
+      if (data[index] && data[index].volume) {
+        vol = data[index].volume;
+      }
+      
+      return {
+        time: item.time,
+        value: vol,
+        color: color
+      };
+    });
+    volumeSeries.setData(volumeData);
 
 
     // 차트 자동 크기 조절
@@ -235,6 +339,167 @@ volumeSeries.setData(volumeData);
     
   } catch (error) {
     console.error('TradingView 차트 생성 오류:', error);
+    return null;
+  }
+}
+
+
+// RSI 차트 생성
+function createRSIChart(containerId, data) {
+  try {
+    var container = document.getElementById(containerId);
+    if (!container) return null;
+    container.innerHTML = '';
+    
+    if (typeof LightweightCharts === 'undefined') {
+      console.error('TradingView 라이브러리가 로드되지 않았습니다.');
+      return null;
+    }
+    
+    var chart = LightweightCharts.createChart(container, {
+      width: container.clientWidth,
+      height: 150,
+      layout: {
+        background: { color: '#ffffff' },
+        textColor: '#333'
+      },
+      grid: {
+        vertLines: { color: '#f0f0f0' },
+        horzLines: { color: '#f0f0f0' }
+      },
+      rightPriceScale: {
+        borderColor: '#cccccc',
+        scaleMargins: { top: 0.1, bottom: 0.1 }
+      },
+      timeScale: {
+        borderColor: '#cccccc',
+        timeVisible: true,
+        visible: true
+      }
+    });
+    
+    // RSI 라인
+    var rsiSeries = chart.addSeries(LightweightCharts.LineSeries, {
+      color: '#8b5cf6',
+      lineWidth: 2,
+      title: 'RSI',
+      priceLineVisible: false
+    });
+    
+    var rsiData = calculateRSI(data, 14);
+    rsiSeries.setData(rsiData);
+    
+    // 과매수선 (70)
+    var overboughtLine = chart.addSeries(LightweightCharts.LineSeries, {
+      color: '#ef4444',
+      lineWidth: 1,
+      lineStyle: 2,
+      title: '70',
+      priceLineVisible: false,
+      lastValueVisible: false
+    });
+    overboughtLine.setData(data.map(function(d) { return { time: d.time, value: 70 }; }));
+    
+    // 과매도선 (30)
+    var oversoldLine = chart.addSeries(LightweightCharts.LineSeries, {
+      color: '#3b82f6',
+      lineWidth: 1,
+      lineStyle: 2,
+      title: '30',
+      priceLineVisible: false,
+      lastValueVisible: false
+    });
+    oversoldLine.setData(data.map(function(d) { return { time: d.time, value: 30 }; }));
+    
+    chart.timeScale().fitContent();
+    
+    // 반응형
+    var resizeObserver = new ResizeObserver(function() {
+      chart.applyOptions({ width: container.clientWidth });
+    });
+    resizeObserver.observe(container);
+    
+    return chart;
+    
+  } catch (error) {
+    console.error('RSI 차트 생성 오류:', error);
+    return null;
+  }
+}
+
+// MACD 차트 생성
+function createMACDChart(containerId, data) {
+  try {
+    var container = document.getElementById(containerId);
+    if (!container) return null;
+    container.innerHTML = '';
+    
+    if (typeof LightweightCharts === 'undefined') {
+      console.error('TradingView 라이브러리가 로드되지 않았습니다.');
+      return null;
+    }
+    
+    var chart = LightweightCharts.createChart(container, {
+      width: container.clientWidth,
+      height: 150,
+      layout: {
+        background: { color: '#ffffff' },
+        textColor: '#333'
+      },
+      grid: {
+        vertLines: { color: '#f0f0f0' },
+        horzLines: { color: '#f0f0f0' }
+      },
+      rightPriceScale: {
+        borderColor: '#cccccc',
+        scaleMargins: { top: 0.1, bottom: 0.1 }
+      },
+      timeScale: {
+        borderColor: '#cccccc',
+        timeVisible: true,
+        visible: true
+      }
+    });
+    
+    var macdData = calculateMACD(data, 12, 26, 9);
+    
+    // MACD 히스토그램
+    var histogramSeries = chart.addSeries(LightweightCharts.HistogramSeries, {
+      title: 'Histogram',
+      priceLineVisible: false
+    });
+    histogramSeries.setData(macdData.histogram);
+    
+    // MACD 라인
+    var macdLineSeries = chart.addSeries(LightweightCharts.LineSeries, {
+      color: '#3b82f6',
+      lineWidth: 2,
+      title: 'MACD',
+      priceLineVisible: false
+    });
+    macdLineSeries.setData(macdData.macd);
+    
+    // 시그널 라인
+    var signalSeries = chart.addSeries(LightweightCharts.LineSeries, {
+      color: '#ef4444',
+      lineWidth: 2,
+      title: 'Signal',
+      priceLineVisible: false
+    });
+    signalSeries.setData(macdData.signal);
+    
+    chart.timeScale().fitContent();
+    
+    // 반응형
+    var resizeObserver = new ResizeObserver(function() {
+      chart.applyOptions({ width: container.clientWidth });
+    });
+    resizeObserver.observe(container);
+    
+    return chart;
+    
+  } catch (error) {
+    console.error('MACD 차트 생성 오류:', error);
     return null;
   }
 }
@@ -781,6 +1046,7 @@ function displayAnalysisResult(data) {
   container.innerHTML = html;
 }
 
+
 // 차트 그리기 (TradingView)
 async function drawStockChart(stockCode) {
   try {
@@ -790,7 +1056,28 @@ async function drawStockChart(stockCode) {
       return;
     }
     
-    var chartData = result.data.slice(-120);
+    var rawData = result.data.slice(-120);
+    
+    // 날짜 형식 변환 (YYYYMMDD → YYYY-MM-DD)
+    var chartData = rawData.map(function(item) {
+      var dateStr = item.date || item.time;
+      var formattedDate = dateStr;
+      
+      if (dateStr && dateStr.length === 8 && !dateStr.includes('-')) {
+        formattedDate = dateStr.substring(0, 4) + '-' + 
+                        dateStr.substring(4, 6) + '-' + 
+                        dateStr.substring(6, 8);
+      }
+      
+      return {
+        time: formattedDate,
+        open: parseFloat(item.open || item.close),
+        high: parseFloat(item.high || item.close),
+        low: parseFloat(item.low || item.close),
+        close: parseFloat(item.close),
+        volume: item.volume || 0
+      };
+    });
     
     // 기존 Chart.js 차트 제거
     if (stockChart) {
@@ -807,10 +1094,19 @@ async function drawStockChart(stockCode) {
     // TradingView 차트 생성
     tvStockChart = createTradingViewChart('stock-chart', chartData, true);
     
+    // RSI 차트 생성
+    createRSIChart('rsi-chart', chartData);
+    
+    // MACD 차트 생성
+    createMACDChart('macd-chart', chartData);
+    
   } catch (error) {
     console.error('차트 오류:', error);
   }
 }
+
+
+
 
 // 종목 분석 (검색 결과에서 호출)
 function analyzeStock(stockCode) {
@@ -1302,7 +1598,28 @@ async function drawUsStockChart(symbol) {
     
     document.getElementById('us-chart-card').style.display = 'block';
     
-    var chartData = result.data.slice(-120);
+    var rawData = result.data.slice(-120);
+    
+    // 날짜 형식 변환
+    var chartData = rawData.map(function(item) {
+      var dateStr = item.date || item.time;
+      var formattedDate = dateStr;
+      
+      if (dateStr && dateStr.length === 8 && !dateStr.includes('-')) {
+        formattedDate = dateStr.substring(0, 4) + '-' + 
+                        dateStr.substring(4, 6) + '-' + 
+                        dateStr.substring(6, 8);
+      }
+      
+      return {
+        time: formattedDate,
+        open: parseFloat(item.open || item.close),
+        high: parseFloat(item.high || item.close),
+        low: parseFloat(item.low || item.close),
+        close: parseFloat(item.close),
+        volume: item.volume || 0
+      };
+    });
     
     // 기존 Chart.js 차트 제거
     if (usStockChart) {
@@ -1319,10 +1636,20 @@ async function drawUsStockChart(symbol) {
     // TradingView 차트 생성
     tvUsStockChart = createTradingViewChart('us-stock-chart', chartData, false);
     
+    // RSI 카드 표시 및 차트 생성
+    document.getElementById('us-rsi-card').style.display = 'block';
+    createRSIChart('us-rsi-chart', chartData);
+
+    // MACD 카드 표시 및 차트 생성
+    document.getElementById('us-macd-card').style.display = 'block';
+    createMACDChart('us-macd-chart', chartData);
+
+
   } catch (error) {
     console.error('미국 주식 차트 오류:', error);
   }
 }
+
 
 function handleAddUsWatchlist() {
   if (!selectedUsStock) {
