@@ -31,6 +31,8 @@ async function findStockCode(input) {
 // 차트 변수
 let stockChart = null;
 let usStockChart = null;
+let tvStockChart = null;  // TradingView 차트 (한국)
+let tvUsStockChart = null;  // TradingView 차트 (미국)
 
 // 관심 종목
 let watchlist = JSON.parse(localStorage.getItem('watchlist')) || [];
@@ -52,6 +54,99 @@ let monitorInterval = null;
 // 미국 포트폴리오
 let usPortfolio = JSON.parse(localStorage.getItem('usPortfolio')) || [];
 let usAlertList = JSON.parse(localStorage.getItem('usAlertList')) || [];
+
+
+// ==================== TradingView 차트 ====================
+function createTradingViewChart(containerId, data, isKorean) {
+  try {
+    // 기존 차트 제거
+    var container = document.getElementById(containerId);
+    container.innerHTML = '';
+    
+    // LightweightCharts 확인
+    if (typeof LightweightCharts === 'undefined') {
+      console.error('TradingView 라이브러리가 로드되지 않았습니다.');
+      return null;
+    }
+    
+    // 차트 생성
+    var chart = LightweightCharts.createChart(container, {
+      width: container.clientWidth,
+      height: 350,
+      layout: {
+        background: { color: '#ffffff' },
+        textColor: '#333'
+      },
+      grid: {
+        vertLines: { color: '#f0f0f0' },
+        horzLines: { color: '#f0f0f0' }
+      },
+      crosshair: {
+        mode: LightweightCharts.CrosshairMode.Normal
+      },
+      rightPriceScale: {
+        borderColor: '#cccccc'
+      },
+      timeScale: {
+        borderColor: '#cccccc',
+        timeVisible: true,
+        secondsVisible: false
+      }
+    });
+    
+    // 캔들스틱 시리즈 추가
+      var candlestickSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
+      upColor: '#ef4444',
+      downColor: '#3b82f6',
+      borderUpColor: '#ef4444',
+      borderDownColor: '#3b82f6',
+      wickUpColor: '#ef4444',
+      wickDownColor: '#3b82f6'
+    });
+    
+  // 데이터 변환 (날짜를 YYYY-MM-DD 형식으로)
+var chartData = data.map(function(item) {
+  // 날짜 형식 변환: YYYYMMDD → YYYY-MM-DD
+  var dateStr = item.date || item.time;
+  var formattedDate = dateStr;
+  
+  // YYYYMMDD 형식이면 YYYY-MM-DD로 변환
+  if (dateStr && dateStr.length === 8 && !dateStr.includes('-')) {
+    formattedDate = dateStr.substring(0, 4) + '-' + 
+                    dateStr.substring(4, 6) + '-' + 
+                    dateStr.substring(6, 8);
+  }
+  
+  return {
+    time: formattedDate,
+    open: parseFloat(item.open || item.close),
+    high: parseFloat(item.high || item.close),
+    low: parseFloat(item.low || item.close),
+    close: parseFloat(item.close)
+  };
+});
+    
+    // 시간순 정렬
+    chartData.sort(function(a, b) { return a.time - b.time; });
+    
+    candlestickSeries.setData(chartData);
+    
+    // 차트 자동 크기 조절
+    chart.timeScale().fitContent();
+    
+    // 반응형 처리
+    var resizeObserver = new ResizeObserver(function() {
+      chart.applyOptions({ width: container.clientWidth });
+    });
+    resizeObserver.observe(container);
+    
+    return chart;
+    
+  } catch (error) {
+    console.error('TradingView 차트 생성 오류:', error);
+    return null;
+  }
+}
 
 
 // ==================== 초기화 ====================
@@ -595,7 +690,7 @@ function displayAnalysisResult(data) {
   container.innerHTML = html;
 }
 
-// 차트 그리기
+// 차트 그리기 (TradingView)
 async function drawStockChart(stockCode) {
   try {
     var result = await apiCall('/api/korea/chart/' + stockCode);
@@ -605,68 +700,22 @@ async function drawStockChart(stockCode) {
     }
     
     var chartData = result.data.slice(-60);
-    var labels = chartData.map(function(d) { return d.date ? d.date.substring(5) : ''; });
-    var closes = chartData.map(function(d) { return d.close; });
     
-    // MA20 계산
-    var ma20 = [];
-    for (var i = 0; i < closes.length; i++) {
-      if (i < 19) {
-        ma20.push(null);
-      } else {
-        var sum = 0;
-        for (var j = i - 19; j <= i; j++) {
-          sum += closes[j];
-        }
-        ma20.push(sum / 20);
-      }
+    // 기존 Chart.js 차트 제거
+    if (stockChart) {
+      stockChart.destroy();
+      stockChart = null;
     }
     
-    if (stockChart) stockChart.destroy();
+    // 기존 TradingView 차트 제거
+    if (tvStockChart) {
+      tvStockChart.remove();
+      tvStockChart = null;
+    }
     
-    var ctx = document.getElementById('stock-chart').getContext('2d');
-    stockChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            label: '종가',
-            data: closes,
-            borderColor: '#3b82f6',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            borderWidth: 2,
-            fill: true,
-            tension: 0.1,
-            pointRadius: 0
-          },
-          {
-            label: 'MA20',
-            data: ma20,
-            borderColor: '#f59e0b',
-            borderWidth: 1.5,
-            fill: false,
-            tension: 0.1,
-            pointRadius: 0
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { position: 'top' } },
-        scales: {
-          y: {
-            beginAtZero: false,
-            ticks: {
-              callback: function(value) {
-                return value.toLocaleString() + '원';
-              }
-            }
-          }
-        }
-      }
-    });
+    // TradingView 차트 생성
+    tvStockChart = createTradingViewChart('stock-chart', chartData, true);
+    
   } catch (error) {
     console.error('차트 오류:', error);
   }
@@ -1150,6 +1199,7 @@ function displayUsStockInfo(data) {
   container.innerHTML = html;
 }
 
+// 미국 주식 차트 그리기 (TradingView)
 async function drawUsStockChart(symbol) {
   try {
     var result = await apiCall('/api/us/candles/' + symbol);
@@ -1162,38 +1212,22 @@ async function drawUsStockChart(symbol) {
     document.getElementById('us-chart-card').style.display = 'block';
     
     var chartData = result.data.slice(-60);
-    var labels = chartData.map(function(d) { return d.date.substring(5); });
-    var closes = chartData.map(function(d) { return d.close; });
     
-    if (usStockChart) usStockChart.destroy();
+    // 기존 Chart.js 차트 제거
+    if (usStockChart) {
+      usStockChart.destroy();
+      usStockChart = null;
+    }
     
-    var ctx = document.getElementById('us-stock-chart').getContext('2d');
-    usStockChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Close',
-          data: closes,
-          borderColor: '#10b981',
-          backgroundColor: 'rgba(16, 185, 129, 0.1)',
-          borderWidth: 2,
-          fill: true,
-          tension: 0.1,
-          pointRadius: 0
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          y: {
-            beginAtZero: false,
-            ticks: { callback: function(v) { return '$' + v.toFixed(2); } }
-          }
-        }
-      }
-    });
+    // 기존 TradingView 차트 제거
+    if (tvUsStockChart) {
+      tvUsStockChart.remove();
+      tvUsStockChart = null;
+    }
+    
+    // TradingView 차트 생성
+    tvUsStockChart = createTradingViewChart('us-stock-chart', chartData, false);
+    
   } catch (error) {
     console.error('미국 주식 차트 오류:', error);
   }

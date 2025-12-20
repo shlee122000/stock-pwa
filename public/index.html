@@ -199,7 +199,7 @@
           <h3>📈 주가 차트</h3>
           <div class="chart-wrapper">
             <div class="chart-container">
-              <canvas id="stock-chart"></canvas>
+              <div id="stock-chart" style="width: 100%; height: 100%;"></div>
             </div>
           </div>
         </div>
@@ -265,7 +265,7 @@
           <h3>📈 주가 차트</h3>
           <div class="chart-wrapper">
             <div class="chart-container">
-              <canvas id="us-stock-chart"></canvas>
+              <div id="us-stock-chart" style="width: 100%; height: 100%;"></div>
             </div>
           </div>
         </div>
@@ -801,7 +801,14 @@
 </div>
 
 <!-- 캐싱 시스템 -->
+<!-- 1. 외부 라이브러리 먼저 -->
+<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+
+<!-- 2. 내부 유틸리티 -->
 <script src="js/cache-manager.js"></script>
+
+<!-- 3. 메인 앱 (마지막) -->
 <script src="app.js"></script>
+  
 </body>
 </html>
