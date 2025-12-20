@@ -720,7 +720,8 @@ tr:hover {
 
 @media (max-width: 768px) {
   .chart-container {
-    min-width: 500px;
+    height: 350px;
+    min-width: 100%;
   }
   
   /* 테마 종목 테이블 스크롤 */
