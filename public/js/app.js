@@ -180,6 +180,48 @@ var chartData = data.map(function(item) {
     });
     ma60Series.setData(calculateMA(chartData, 60));
 
+
+    // 거래량 차트 추가
+var volumeSeries = chart.addSeries(LightweightCharts.HistogramSeries, {
+  color: '#26a69a',
+  priceFormat: {
+    type: 'volume'
+  },
+  priceScaleId: 'volume',
+  title: 'Vol'
+});
+
+// 거래량 스케일 설정 (차트 하단 30% 영역)
+chart.priceScale('volume').applyOptions({
+  scaleMargins: {
+    top: 0.7,
+    bottom: 0
+  },
+  visible: false
+});
+
+// 거래량 데이터 (상승=빨강, 하락=파랑)
+var volumeData = chartData.map(function(item, index) {
+  var color = '#3b82f6';  // 기본 파랑 (하락)
+  if (index > 0 && item.close >= chartData[index - 1].close) {
+    color = '#ef4444';  // 빨강 (상승)
+  }
+  
+  // 원본 데이터에서 거래량 가져오기
+  var vol = 0;
+  if (data[index] && data[index].volume) {
+    vol = data[index].volume;
+  }
+  
+  return {
+    time: item.time,
+    value: vol,
+    color: color
+  };
+});
+volumeSeries.setData(volumeData);
+
+
     // 차트 자동 크기 조절
     chart.timeScale().fitContent();
     
@@ -748,7 +790,7 @@ async function drawStockChart(stockCode) {
       return;
     }
     
-    var chartData = result.data.slice(-60);
+    var chartData = result.data.slice(-120);
     
     // 기존 Chart.js 차트 제거
     if (stockChart) {
@@ -1260,7 +1302,7 @@ async function drawUsStockChart(symbol) {
     
     document.getElementById('us-chart-card').style.display = 'block';
     
-    var chartData = result.data.slice(-60);
+    var chartData = result.data.slice(-120);
     
     // 기존 Chart.js 차트 제거
     if (usStockChart) {
