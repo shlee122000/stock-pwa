@@ -214,6 +214,63 @@ function calculateBollingerBands(data, period, multiplier) {
 }
 
 
+// 일목균형표 계산 함수
+function calculateIchimoku(data, tenkanPeriod, kijunPeriod, senkouBPeriod) {
+  // 기간 내 최고가/최저가의 중간값 계산
+  function midPoint(data, start, period) {
+    var high = -Infinity;
+    var low = Infinity;
+    for (var i = start; i < start + period && i < data.length; i++) {
+      if (data[i].high > high) high = data[i].high;
+      if (data[i].low < low) low = data[i].low;
+    }
+    return (high + low) / 2;
+  }
+  
+  var result = {
+    tenkan: [],      // 전환선 (9일)
+    kijun: [],       // 기준선 (26일)
+    senkouA: [],     // 선행스팬1
+    senkouB: [],     // 선행스팬2
+    chikou: []       // 후행스팬
+  };
+  
+  for (var i = 0; i < data.length; i++) {
+    // 전환선 (9일)
+    if (i >= tenkanPeriod - 1) {
+      var tenkan = midPoint(data, i - tenkanPeriod + 1, tenkanPeriod);
+      result.tenkan.push({ time: data[i].time, value: tenkan });
+    }
+    
+    // 기준선 (26일)
+    if (i >= kijunPeriod - 1) {
+      var kijun = midPoint(data, i - kijunPeriod + 1, kijunPeriod);
+      result.kijun.push({ time: data[i].time, value: kijun });
+    }
+    
+    // 선행스팬1, 2 (26일 앞으로 이동)
+    if (i >= kijunPeriod - 1 && i + kijunPeriod < data.length) {
+      var tenkanVal = midPoint(data, i - tenkanPeriod + 1, tenkanPeriod);
+      var kijunVal = midPoint(data, i - kijunPeriod + 1, kijunPeriod);
+      var senkouA = (tenkanVal + kijunVal) / 2;
+      result.senkouA.push({ time: data[i + kijunPeriod].time, value: senkouA });
+    }
+    
+    if (i >= senkouBPeriod - 1 && i + kijunPeriod < data.length) {
+      var senkouB = midPoint(data, i - senkouBPeriod + 1, senkouBPeriod);
+      result.senkouB.push({ time: data[i + kijunPeriod].time, value: senkouB });
+    }
+    
+    // 후행스팬 (26일 뒤로 이동)
+    if (i >= kijunPeriod) {
+      result.chikou.push({ time: data[i - kijunPeriod].time, value: data[i].close });
+    }
+  }
+  
+  return result;
+}
+
+
 // ==================== TradingView 차트 ====================
 function createTradingViewChart(containerId, data, isKorean) {
   try {
@@ -344,6 +401,61 @@ function createTradingViewChart(containerId, data, isKorean) {
       lastValueVisible: false
     });
     bbLowerSeries.setData(bbData.lower);
+
+
+    // 일목균형표 (9, 26, 52)
+var ichimokuData = calculateIchimoku(chartData, 9, 26, 52);
+
+// 전환선 (빨간색)
+var tenkanSeries = chart.addSeries(LightweightCharts.LineSeries, {
+  color: '#ef4444',
+  lineWidth: 1,
+  title: '전환선',
+  priceLineVisible: false,
+  lastValueVisible: false
+});
+tenkanSeries.setData(ichimokuData.tenkan);
+
+// 기준선 (파란색)
+var kijunSeries = chart.addSeries(LightweightCharts.LineSeries, {
+  color: '#3b82f6',
+  lineWidth: 1,
+  title: '기준선',
+  priceLineVisible: false,
+  lastValueVisible: false
+});
+kijunSeries.setData(ichimokuData.kijun);
+
+// 선행스팬1 (연두색)
+var senkouASeries = chart.addSeries(LightweightCharts.LineSeries, {
+  color: '#22c55e',
+  lineWidth: 1,
+  title: '선행1',
+  priceLineVisible: false,
+  lastValueVisible: false
+});
+senkouASeries.setData(ichimokuData.senkouA);
+
+// 선행스팬2 (분홍색)
+var senkouBSeries = chart.addSeries(LightweightCharts.LineSeries, {
+  color: '#ec4899',
+  lineWidth: 1,
+  title: '선행2',
+  priceLineVisible: false,
+  lastValueVisible: false
+});
+senkouBSeries.setData(ichimokuData.senkouB);
+
+// 후행스팬 (보라색)
+var chikouSeries = chart.addSeries(LightweightCharts.LineSeries, {
+  color: '#8b5cf6',
+  lineWidth: 1,
+  title: '후행',
+  priceLineVisible: false,
+  lastValueVisible: false
+});
+chikouSeries.setData(ichimokuData.chikou);
+
 
     // 거래량 차트 추가
     var volumeSeries = chart.addSeries(LightweightCharts.HistogramSeries, {
