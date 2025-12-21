@@ -323,6 +323,45 @@ function calculateStochastic(data, kPeriod, dPeriod) {
 }
 
 
+// ATR (Average True Range) 계산 함수
+function calculateATR(data, period) {
+  var result = [];
+  var trValues = [];
+  
+  for (var i = 1; i < data.length; i++) {
+    // True Range 계산
+    var high = data[i].high;
+    var low = data[i].low;
+    var prevClose = data[i - 1].close;
+    
+    var tr = Math.max(
+      high - low,
+      Math.abs(high - prevClose),
+      Math.abs(low - prevClose)
+    );
+    
+    trValues.push({ time: data[i].time, value: tr });
+  }
+  
+  // ATR 계산 (True Range의 이동평균)
+  for (var i = 0; i < trValues.length; i++) {
+    if (i < period - 1) {
+      continue;
+    }
+    
+    var sum = 0;
+    for (var j = i - period + 1; j <= i; j++) {
+      sum += trValues[j].value;
+    }
+    var atr = sum / period;
+    
+    result.push({ time: trValues[i].time, value: atr });
+  }
+  
+  return result;
+}
+
+
 // ==================== TradingView 차트 ====================
 function createTradingViewChart(containerId, data, isKorean) {
   try {
@@ -817,6 +856,68 @@ function createStochasticChart(containerId, data) {
     
   } catch (error) {
     console.error('스토캐스틱 차트 생성 오류:', error);
+    return null;
+  }
+}
+
+
+// ATR 차트 생성
+function createATRChart(containerId, data) {
+  try {
+    var container = document.getElementById(containerId);
+    if (!container) return null;
+    container.innerHTML = '';
+    
+    if (typeof LightweightCharts === 'undefined') {
+      console.error('TradingView 라이브러리가 로드되지 않았습니다.');
+      return null;
+    }
+    
+    var chart = LightweightCharts.createChart(container, {
+      width: container.clientWidth,
+      height: 150,
+      layout: {
+        background: { color: '#ffffff' },
+        textColor: '#333'
+      },
+      grid: {
+        vertLines: { color: '#f0f0f0' },
+        horzLines: { color: '#f0f0f0' }
+      },
+      rightPriceScale: {
+        borderColor: '#cccccc',
+        scaleMargins: { top: 0.1, bottom: 0.1 }
+      },
+      timeScale: {
+        borderColor: '#cccccc',
+        timeVisible: true,
+        visible: true
+      }
+    });
+    
+    var atrData = calculateATR(data, 14);
+    
+    // ATR 라인 (주황색)
+    var atrSeries = chart.addSeries(LightweightCharts.LineSeries, {
+      color: '#f59e0b',
+      lineWidth: 2,
+      title: 'ATR',
+      priceLineVisible: false
+    });
+    atrSeries.setData(atrData);
+    
+    chart.timeScale().fitContent();
+    
+    // 반응형
+    var resizeObserver = new ResizeObserver(function() {
+      chart.applyOptions({ width: container.clientWidth });
+    });
+    resizeObserver.observe(container);
+    
+    return chart;
+    
+  } catch (error) {
+    console.error('ATR 차트 생성 오류:', error);
     return null;
   }
 }
@@ -1420,6 +1521,9 @@ async function drawStockChart(stockCode) {
 
     // 스토캐스틱 차트 생성
     createStochasticChart('stochastic-chart', chartData);
+
+    // ATR 차트 생성
+    createATRChart('atr-chart', chartData);
     
   } catch (error) {
     console.error('차트 오류:', error);
@@ -1970,7 +2074,12 @@ async function drawUsStockChart(symbol) {
     document.getElementById('us-stochastic-card').style.display = 'block';
     createStochasticChart('us-stochastic-chart', chartData);
 
-    
+
+    // ATR 카드 표시 및 차트 생성
+    document.getElementById('us-atr-card').style.display = 'block';
+    createATRChart('us-atr-chart', chartData);
+
+
   } catch (error) {
     console.error('미국 주식 차트 오류:', error);
   }
