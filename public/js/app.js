@@ -178,6 +178,42 @@ function calculateMACD(data, fastPeriod, slowPeriod, signalPeriod) {
 }
 
 
+// 볼린저 밴드 계산 함수
+function calculateBollingerBands(data, period, multiplier) {
+  var result = {
+    upper: [],
+    middle: [],
+    lower: []
+  };
+  
+  for (var i = 0; i < data.length; i++) {
+    if (i < period - 1) {
+      continue;
+    }
+    
+    // 이동평균 계산
+    var sum = 0;
+    for (var j = i - period + 1; j <= i; j++) {
+      sum += data[j].close;
+    }
+    var ma = sum / period;
+    
+    // 표준편차 계산
+    var squareSum = 0;
+    for (var j = i - period + 1; j <= i; j++) {
+      squareSum += Math.pow(data[j].close - ma, 2);
+    }
+    var std = Math.sqrt(squareSum / period);
+    
+    result.middle.push({ time: data[i].time, value: ma });
+    result.upper.push({ time: data[i].time, value: ma + (multiplier * std) });
+    result.lower.push({ time: data[i].time, value: ma - (multiplier * std) });
+  }
+  
+  return result;
+}
+
+
 // ==================== TradingView 차트 ====================
 function createTradingViewChart(containerId, data, isKorean) {
   try {
@@ -284,6 +320,30 @@ function createTradingViewChart(containerId, data, isKorean) {
     });
     ma60Series.setData(calculateMA(chartData, 60));
 
+    // 볼린저 밴드 (20일, 2σ)
+    var bbData = calculateBollingerBands(chartData, 20, 2);
+
+    // 볼린저 상단 밴드
+    var bbUpperSeries = chart.addSeries(LightweightCharts.LineSeries, {
+      color: '#9333ea',
+      lineWidth: 1,
+      lineStyle: 2,
+      title: 'BB Upper',
+      priceLineVisible: false,
+      lastValueVisible: false
+    });
+    bbUpperSeries.setData(bbData.upper);
+
+    // 볼린저 하단 밴드
+    var bbLowerSeries = chart.addSeries(LightweightCharts.LineSeries, {
+      color: '#9333ea',
+      lineWidth: 1,
+      lineStyle: 2,
+      title: 'BB Lower',
+      priceLineVisible: false,
+      lastValueVisible: false
+    });
+    bbLowerSeries.setData(bbData.lower);
 
     // 거래량 차트 추가
     var volumeSeries = chart.addSeries(LightweightCharts.HistogramSeries, {
