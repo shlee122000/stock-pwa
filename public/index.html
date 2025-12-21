@@ -197,6 +197,13 @@
         </div>
         <div class="card" style="margin-top:20px;">
           <h3>📈 주가 차트</h3>
+
+          <div style="margin-bottom: 10px; display: flex; gap: 5px;">
+            <button class="timeframe-btn active" data-timeframe="daily" onclick="changeTimeframe('daily')">일봉</button>
+            <button class="timeframe-btn" data-timeframe="weekly" onclick="changeTimeframe('weekly')">주봉</button>
+            <button class="timeframe-btn" data-timeframe="monthly" onclick="changeTimeframe('monthly')">월봉</button>
+          </div>
+
           <div style="margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 5px;">
             <button class="indicator-btn active" data-indicator="ma" onclick="toggleIndicator('ma')">이동평균선</button>
             <button class="indicator-btn active" data-indicator="bb" onclick="toggleIndicator('bb')">볼린저밴드</button>

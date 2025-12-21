@@ -116,6 +116,116 @@ function toggleUsIndicator(indicator) {
 }
 
 
+// 현재 선택된 시간대
+var currentTimeframe = 'daily';
+
+// 시간대 변경 함수
+function changeTimeframe(timeframe) {
+  currentTimeframe = timeframe;
+  
+  // 버튼 스타일 업데이트
+  document.querySelectorAll('.timeframe-btn').forEach(function(btn) {
+    btn.classList.remove('active');
+  });
+  var activeBtn = document.querySelector('[data-timeframe="' + timeframe + '"]');
+  if (activeBtn) {
+    activeBtn.classList.add('active');
+  }
+  
+  // 차트 다시 그리기
+  var stockCode = document.getElementById('analysis-stock-code').value;
+  if (stockCode) {
+    drawStockChart(stockCode);
+  }
+}
+
+
+// 일봉 → 주봉 변환
+function convertToWeekly(dailyData) {
+  var weeklyData = [];
+  var currentWeek = null;
+  
+  dailyData.forEach(function(day) {
+    // 날짜 형식 변환 (YYYYMMDD → YYYY-MM-DD)
+    var dateStr = day.date;
+    if (dateStr.length === 8 && !dateStr.includes('-')) {
+      dateStr = dateStr.substring(0, 4) + '-' + dateStr.substring(4, 6) + '-' + dateStr.substring(6, 8);
+    }
+    
+    var date = new Date(dateStr);
+    var weekStart = new Date(date);
+    weekStart.setDate(date.getDate() - date.getDay());
+    var weekKey = weekStart.toISOString().split('T')[0];
+    
+    if (!currentWeek || currentWeek.weekKey !== weekKey) {
+      if (currentWeek) {
+        weeklyData.push(currentWeek);
+      }
+      currentWeek = {
+        weekKey: weekKey,
+        date: day.date,
+        open: day.open,
+        high: day.high,
+        low: day.low,
+        close: day.close,
+        volume: day.volume || 0
+      };
+    } else {
+      currentWeek.high = Math.max(currentWeek.high, day.high);
+      currentWeek.low = Math.min(currentWeek.low, day.low);
+      currentWeek.close = day.close;
+      currentWeek.date = day.date;
+      currentWeek.volume += (day.volume || 0);
+    }
+  });
+  
+  if (currentWeek) {
+    weeklyData.push(currentWeek);
+  }
+  
+  return weeklyData;
+}
+
+
+// 일봉 → 월봉 변환
+function convertToMonthly(dailyData) {
+  var monthlyData = [];
+  var currentMonth = null;
+  
+  dailyData.forEach(function(day) {
+    var dateStr = day.date;
+    var monthKey = dateStr.substring(0, 6);  // YYYYMM
+    
+    if (!currentMonth || currentMonth.monthKey !== monthKey) {
+      if (currentMonth) {
+        monthlyData.push(currentMonth);
+      }
+      currentMonth = {
+        monthKey: monthKey,
+        date: day.date,
+        open: day.open,
+        high: day.high,
+        low: day.low,
+        close: day.close,
+        volume: day.volume || 0
+      };
+    } else {
+      currentMonth.high = Math.max(currentMonth.high, day.high);
+      currentMonth.low = Math.min(currentMonth.low, day.low);
+      currentMonth.close = day.close;
+      currentMonth.date = day.date;
+      currentMonth.volume += (day.volume || 0);
+    }
+  });
+  
+  if (currentMonth) {
+    monthlyData.push(currentMonth);
+  }
+  
+  return monthlyData;
+}
+
+
 // ==================== 분석 메모 ====================
 // 메모 저장
 function saveMemo(stockCode) {
@@ -1682,7 +1792,45 @@ async function drawStockChart(stockCode) {
       return;
     }
     
-    var rawData = result.data.slice(-200);
+    // 시간대에 따라 데이터 개수 조정
+    var dataCount = 200;
+    if (currentTimeframe === 'weekly') {
+      dataCount = 1000;  // 주봉은 더 많은 데이터 필요
+    } else if (currentTimeframe === 'monthly') {
+      dataCount = 1500;  // 월봉은 더 많은 데이터 필요
+    }
+
+    var rawData = result.data.slice(-dataCount);
+
+    // 주봉/월봉 변환
+    if (currentTimeframe === 'weekly') {
+      rawData = convertToWeekly(rawData);
+    } else if (currentTimeframe === 'monthly') {
+      rawData = convertToMonthly(rawData);
+    }
+
+
+    // 날짜 형식 변환 (RSI/MACD 등에 전달할 데이터)
+    var formattedData = rawData.map(function(item) {
+      var dateStr = item.date || item.time;
+      var formattedDate = dateStr;
+      
+      if (dateStr && dateStr.length === 8 && !dateStr.includes('-')) {
+        formattedDate = dateStr.substring(0, 4) + '-' + 
+                        dateStr.substring(4, 6) + '-' + 
+                        dateStr.substring(6, 8);
+      }
+      
+      return {
+        time: formattedDate,
+        open: parseFloat(item.open || item.close),
+        high: parseFloat(item.high || item.close),
+        low: parseFloat(item.low || item.close),
+        close: parseFloat(item.close),
+        volume: item.volume || 0
+      };
+    });
+
     
     // 날짜 형식 변환 (YYYYMMDD → YYYY-MM-DD)
     var chartData = rawData.map(function(item) {
@@ -1721,16 +1869,16 @@ async function drawStockChart(stockCode) {
     tvStockChart = createTradingViewChart('stock-chart', chartData, true, indicatorSettings);
     
     // RSI 차트 생성
-    createRSIChart('rsi-chart', chartData);
-    
+    createRSIChart('rsi-chart', formattedData);
+
     // MACD 차트 생성
-    createMACDChart('macd-chart', chartData);
+    createMACDChart('macd-chart', formattedData);
 
     // 스토캐스틱 차트 생성
-    createStochasticChart('stochastic-chart', chartData);
+    createStochasticChart('stochastic-chart', formattedData);
 
     // ATR 차트 생성
-    createATRChart('atr-chart', chartData);
+    createATRChart('atr-chart', formattedData);
 
     // 저장된 메모 불러오기
     loadMemo(stockCode);
