@@ -34,6 +34,37 @@ let usStockChart = null;
 let tvStockChart = null;  // TradingView 차트 (한국)
 let tvUsStockChart = null;  // TradingView 차트 (미국)
 
+// 지표 표시 설정
+var indicatorSettings = {
+  ma: true,
+  bb: true,
+  ichimoku: false,
+  volume: true
+};
+
+// 지표 토글 함수
+function toggleIndicator(indicator) {
+  indicatorSettings[indicator] = !indicatorSettings[indicator];
+  
+  // 버튼 스타일 업데이트
+  var btn = document.querySelector('[data-indicator="' + indicator + '"]');
+  if (btn) {
+    if (indicatorSettings[indicator]) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  }
+  
+  // 차트 다시 그리기
+  var stockCode = document.getElementById('analysis-stock-code').value;
+  if (stockCode) {
+    drawStockChart(stockCode);
+  }
+}
+
+
+
 // 관심 종목
 let watchlist = JSON.parse(localStorage.getItem('watchlist')) || [];
 let usWatchlist = JSON.parse(localStorage.getItem('usWatchlist')) || [];
@@ -54,6 +85,35 @@ let monitorInterval = null;
 // 미국 포트폴리오
 let usPortfolio = JSON.parse(localStorage.getItem('usPortfolio')) || [];
 let usAlertList = JSON.parse(localStorage.getItem('usAlertList')) || [];
+
+
+// 미국 주식 지표 설정
+var usIndicatorSettings = {
+  ma: true,
+  bb: true,
+  ichimoku: false,
+  volume: true
+};
+
+// 미국 주식 지표 토글 함수
+function toggleUsIndicator(indicator) {
+  usIndicatorSettings[indicator] = !usIndicatorSettings[indicator];
+  
+  // 버튼 스타일 업데이트
+  var btn = document.querySelector('[data-indicator="us-' + indicator + '"]');
+  if (btn) {
+    if (usIndicatorSettings[indicator]) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  }
+  
+  // 차트 다시 그리기
+  if (selectedUsStock && selectedUsStock.symbol) {
+    drawUsStockChart(selectedUsStock.symbol);
+  }
+}
 
 
 // 이동평균선 계산 함수
@@ -363,8 +423,11 @@ function calculateATR(data, period) {
 
 
 // ==================== TradingView 차트 ====================
-function createTradingViewChart(containerId, data, isKorean) {
+function createTradingViewChart(containerId, data, isKorean, settings) {
   try {
+    // 지표 설정 (기본값: indicatorSettings)
+    var indicatorOpts = settings || indicatorSettings;  
+
     // 기존 차트 제거
     var container = document.getElementById(containerId);
     container.innerHTML = '';
@@ -401,7 +464,7 @@ function createTradingViewChart(containerId, data, isKorean) {
     });
     
     // 캔들스틱 시리즈 추가
-      var candlestickSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
+    var candlestickSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
       upColor: '#ef4444',
       downColor: '#3b82f6',
       borderUpColor: '#ef4444',
@@ -410,13 +473,11 @@ function createTradingViewChart(containerId, data, isKorean) {
       wickDownColor: '#3b82f6'
     });
     
-  // 데이터 변환 (날짜를 YYYY-MM-DD 형식으로)
+    // 데이터 변환 (날짜를 YYYY-MM-DD 형식으로)
     var chartData = data.map(function(item) {
-      // 날짜 형식 변환: YYYYMMDD → YYYY-MM-DD
       var dateStr = item.date || item.time;
       var formattedDate = dateStr;
       
-      // YYYYMMDD 형식이면 YYYY-MM-DD로 변환
       if (dateStr && dateStr.length === 8 && !dateStr.includes('-')) {
         formattedDate = dateStr.substring(0, 4) + '-' + 
                         dateStr.substring(4, 6) + '-' + 
@@ -437,157 +498,149 @@ function createTradingViewChart(containerId, data, isKorean) {
     
     candlestickSeries.setData(chartData);
 
-    // 이동평균선 추가
-    // MA 5 (빨간색 - 단기)
-    var ma5Series = chart.addSeries(LightweightCharts.LineSeries, {
-      color: '#ef4444',
-      lineWidth: 1,
-      title: 'MA5',
-      priceLineVisible: false,
-      lastValueVisible: false
-    });
-    ma5Series.setData(calculateMA(chartData, 5));
+    // 이동평균선 (설정에 따라 표시)
+    if (indicatorOpts.ma) {
+      var ma5Series = chart.addSeries(LightweightCharts.LineSeries, {
+        color: '#ef4444',
+        lineWidth: 1,
+        title: 'MA5',
+        priceLineVisible: false,
+        lastValueVisible: false
+      });
+      ma5Series.setData(calculateMA(chartData, 5));
 
-    // MA 20 (주황색 - 중기)
-    var ma20Series = chart.addSeries(LightweightCharts.LineSeries, {
-      color: '#f59e0b',
-      lineWidth: 1,
-      title: 'MA20',
-      priceLineVisible: false,
-      lastValueVisible: false
-    });
-    ma20Series.setData(calculateMA(chartData, 20));
+      var ma20Series = chart.addSeries(LightweightCharts.LineSeries, {
+        color: '#f59e0b',
+        lineWidth: 1,
+        title: 'MA20',
+        priceLineVisible: false,
+        lastValueVisible: false
+      });
+      ma20Series.setData(calculateMA(chartData, 20));
 
-    // MA 60 (초록색 - 장기)
-    var ma60Series = chart.addSeries(LightweightCharts.LineSeries, {
-      color: '#10b981',
-      lineWidth: 1,
-      title: 'MA60',
-      priceLineVisible: false,
-      lastValueVisible: false
-    });
-    ma60Series.setData(calculateMA(chartData, 60));
+      var ma60Series = chart.addSeries(LightweightCharts.LineSeries, {
+        color: '#10b981',
+        lineWidth: 1,
+        title: 'MA60',
+        priceLineVisible: false,
+        lastValueVisible: false
+      });
+      ma60Series.setData(calculateMA(chartData, 60));
+    }
 
-    // 볼린저 밴드 (20일, 2σ)
-    var bbData = calculateBollingerBands(chartData, 20, 2);
+    // 볼린저 밴드 (설정에 따라 표시)
+    if (indicatorOpts.bb) {
+      var bbData = calculateBollingerBands(chartData, 20, 2);
 
-    // 볼린저 상단 밴드
-    var bbUpperSeries = chart.addSeries(LightweightCharts.LineSeries, {
-      color: '#9333ea',
-      lineWidth: 1,
-      lineStyle: 2,
-      title: 'BB Upper',
-      priceLineVisible: false,
-      lastValueVisible: false
-    });
-    bbUpperSeries.setData(bbData.upper);
+      var bbUpperSeries = chart.addSeries(LightweightCharts.LineSeries, {
+        color: '#9333ea',
+        lineWidth: 1,
+        lineStyle: 2,
+        title: 'BB Upper',
+        priceLineVisible: false,
+        lastValueVisible: false
+      });
+      bbUpperSeries.setData(bbData.upper);
 
-    // 볼린저 하단 밴드
-    var bbLowerSeries = chart.addSeries(LightweightCharts.LineSeries, {
-      color: '#9333ea',
-      lineWidth: 1,
-      lineStyle: 2,
-      title: 'BB Lower',
-      priceLineVisible: false,
-      lastValueVisible: false
-    });
-    bbLowerSeries.setData(bbData.lower);
+      var bbLowerSeries = chart.addSeries(LightweightCharts.LineSeries, {
+        color: '#9333ea',
+        lineWidth: 1,
+        lineStyle: 2,
+        title: 'BB Lower',
+        priceLineVisible: false,
+        lastValueVisible: false
+      });
+      bbLowerSeries.setData(bbData.lower);
+    }
 
+    // 일목균형표 (설정에 따라 표시)
+    if (indicatorOpts.ichimoku) {
+      var ichimokuData = calculateIchimoku(chartData, 9, 26, 52);
 
-    // 일목균형표 (9, 26, 52)
-var ichimokuData = calculateIchimoku(chartData, 9, 26, 52);
+      var tenkanSeries = chart.addSeries(LightweightCharts.LineSeries, {
+        color: '#ef4444',
+        lineWidth: 1,
+        title: '전환선',
+        priceLineVisible: false,
+        lastValueVisible: false
+      });
+      tenkanSeries.setData(ichimokuData.tenkan);
 
-// 전환선 (빨간색)
-var tenkanSeries = chart.addSeries(LightweightCharts.LineSeries, {
-  color: '#ef4444',
-  lineWidth: 1,
-  title: '전환선',
-  priceLineVisible: false,
-  lastValueVisible: false
-});
-tenkanSeries.setData(ichimokuData.tenkan);
+      var kijunSeries = chart.addSeries(LightweightCharts.LineSeries, {
+        color: '#3b82f6',
+        lineWidth: 1,
+        title: '기준선',
+        priceLineVisible: false,
+        lastValueVisible: false
+      });
+      kijunSeries.setData(ichimokuData.kijun);
 
-// 기준선 (파란색)
-var kijunSeries = chart.addSeries(LightweightCharts.LineSeries, {
-  color: '#3b82f6',
-  lineWidth: 1,
-  title: '기준선',
-  priceLineVisible: false,
-  lastValueVisible: false
-});
-kijunSeries.setData(ichimokuData.kijun);
+      var senkouASeries = chart.addSeries(LightweightCharts.LineSeries, {
+        color: '#22c55e',
+        lineWidth: 1,
+        title: '선행1',
+        priceLineVisible: false,
+        lastValueVisible: false
+      });
+      senkouASeries.setData(ichimokuData.senkouA);
 
-// 선행스팬1 (연두색)
-var senkouASeries = chart.addSeries(LightweightCharts.LineSeries, {
-  color: '#22c55e',
-  lineWidth: 1,
-  title: '선행1',
-  priceLineVisible: false,
-  lastValueVisible: false
-});
-senkouASeries.setData(ichimokuData.senkouA);
+      var senkouBSeries = chart.addSeries(LightweightCharts.LineSeries, {
+        color: '#ec4899',
+        lineWidth: 1,
+        title: '선행2',
+        priceLineVisible: false,
+        lastValueVisible: false
+      });
+      senkouBSeries.setData(ichimokuData.senkouB);
 
-// 선행스팬2 (분홍색)
-var senkouBSeries = chart.addSeries(LightweightCharts.LineSeries, {
-  color: '#ec4899',
-  lineWidth: 1,
-  title: '선행2',
-  priceLineVisible: false,
-  lastValueVisible: false
-});
-senkouBSeries.setData(ichimokuData.senkouB);
+      var chikouSeries = chart.addSeries(LightweightCharts.LineSeries, {
+        color: '#8b5cf6',
+        lineWidth: 1,
+        title: '후행',
+        priceLineVisible: false,
+        lastValueVisible: false
+      });
+      chikouSeries.setData(ichimokuData.chikou);
+    }
 
-// 후행스팬 (보라색)
-var chikouSeries = chart.addSeries(LightweightCharts.LineSeries, {
-  color: '#8b5cf6',
-  lineWidth: 1,
-  title: '후행',
-  priceLineVisible: false,
-  lastValueVisible: false
-});
-chikouSeries.setData(ichimokuData.chikou);
+    // 거래량 차트 (설정에 따라 표시)
+    if (indicatorOpts.volume) {
+      var volumeSeries = chart.addSeries(LightweightCharts.HistogramSeries, {
+        color: '#26a69a',
+        priceFormat: {
+          type: 'volume'
+        },
+        priceScaleId: 'volume',
+        title: 'Vol'
+      });
 
+      chart.priceScale('volume').applyOptions({
+        scaleMargins: {
+          top: 0.7,
+          bottom: 0
+        },
+        visible: false
+      });
 
-    // 거래량 차트 추가
-    var volumeSeries = chart.addSeries(LightweightCharts.HistogramSeries, {
-      color: '#26a69a',
-      priceFormat: {
-        type: 'volume'
-      },
-      priceScaleId: 'volume',
-      title: 'Vol'
-    });
-
-    // 거래량 스케일 설정 (차트 하단 30% 영역)
-    chart.priceScale('volume').applyOptions({
-      scaleMargins: {
-        top: 0.7,
-        bottom: 0
-      },
-      visible: false
-    });
-
-    // 거래량 데이터 (상승=빨강, 하락=파랑)
-    var volumeData = chartData.map(function(item, index) {
-      var color = '#3b82f6';  // 기본 파랑 (하락)
-      if (index > 0 && item.close >= chartData[index - 1].close) {
-        color = '#ef4444';  // 빨강 (상승)
-      }
-      
-      // 원본 데이터에서 거래량 가져오기
-      var vol = 0;
-      if (data[index] && data[index].volume) {
-        vol = data[index].volume;
-      }
-      
-      return {
-        time: item.time,
-        value: vol,
-        color: color
-      };
-    });
-    volumeSeries.setData(volumeData);
-
+      var volumeData = chartData.map(function(item, index) {
+        var color = '#3b82f6';
+        if (index > 0 && item.close >= chartData[index - 1].close) {
+          color = '#ef4444';
+        }
+        
+        var vol = 0;
+        if (data[index] && data[index].volume) {
+          vol = data[index].volume;
+        }
+        
+        return {
+          time: item.time,
+          value: vol,
+          color: color
+        };
+      });
+      volumeSeries.setData(volumeData);
+    }
 
     // 차트 자동 크기 조절
     chart.timeScale().fitContent();
@@ -1511,7 +1564,7 @@ async function drawStockChart(stockCode) {
     }
     
     // TradingView 차트 생성
-    tvStockChart = createTradingViewChart('stock-chart', chartData, true);
+    tvStockChart = createTradingViewChart('stock-chart', chartData, true, indicatorSettings);
     
     // RSI 차트 생성
     createRSIChart('rsi-chart', chartData);
@@ -2059,7 +2112,7 @@ async function drawUsStockChart(symbol) {
     }
     
     // TradingView 차트 생성
-    tvUsStockChart = createTradingViewChart('us-stock-chart', chartData, false);
+    tvUsStockChart = createTradingViewChart('us-stock-chart', chartData, false, usIndicatorSettings);
     
     // RSI 카드 표시 및 차트 생성
     document.getElementById('us-rsi-card').style.display = 'block';

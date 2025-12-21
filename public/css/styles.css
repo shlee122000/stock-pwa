@@ -904,3 +904,26 @@ tr:hover {
 .logout-btn:hover {
   background: rgba(255, 255, 255, 0.3);
 }
+
+
+/* 지표 토글 버튼 */
+.indicator-btn {
+  padding: 5px 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background: #f5f5f5;
+  color: #666;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.indicator-btn:hover {
+  background: #e0e0e0;
+}
+
+.indicator-btn.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}

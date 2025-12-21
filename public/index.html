@@ -197,6 +197,12 @@
         </div>
         <div class="card" style="margin-top:20px;">
           <h3>📈 주가 차트</h3>
+          <div style="margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 5px;">
+            <button class="indicator-btn active" data-indicator="ma" onclick="toggleIndicator('ma')">이동평균선</button>
+            <button class="indicator-btn active" data-indicator="bb" onclick="toggleIndicator('bb')">볼린저밴드</button>
+            <button class="indicator-btn" data-indicator="ichimoku" onclick="toggleIndicator('ichimoku')">일목균형표</button>
+            <button class="indicator-btn active" data-indicator="volume" onclick="toggleIndicator('volume')">거래량</button>
+          </div>
           <div class="chart-wrapper">
             <div class="chart-container">
               <div id="stock-chart" style="width: 100%; height: 100%;"></div>
@@ -303,6 +309,12 @@
         <div id="us-search-results" class="result-area" style="margin-bottom:20px;"></div>
         <div class="card" id="us-chart-card" style="display:none;">
           <h3>📈 주가 차트</h3>
+          <div style="margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 5px;">
+            <button class="indicator-btn active" data-indicator="us-ma" onclick="toggleUsIndicator('ma')">이동평균선</button>
+            <button class="indicator-btn active" data-indicator="us-bb" onclick="toggleUsIndicator('bb')">볼린저밴드</button>
+            <button class="indicator-btn" data-indicator="us-ichimoku" onclick="toggleUsIndicator('ichimoku')">일목균형표</button>
+            <button class="indicator-btn active" data-indicator="us-volume" onclick="toggleUsIndicator('volume')">거래량</button>
+          </div>
           <div class="chart-wrapper">
             <div class="chart-container">
               <div id="us-stock-chart" style="width: 100%; height: 100%;"></div>
