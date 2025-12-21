@@ -181,6 +181,76 @@ function deleteMemo(stockCode) {
 }
 
 
+// ==================== 미국 주식 분석 메모 ====================
+// 미국 주식 메모 저장
+function saveUsMemo(symbol) {
+  var memo = document.getElementById('us-analysis-memo').value;
+  if (!symbol && selectedUsStock) {
+    symbol = selectedUsStock.symbol;
+  }
+  
+  if (!symbol) {
+    alert('종목을 먼저 검색하세요.');
+    return;
+  }
+  
+  var memos = JSON.parse(localStorage.getItem('usStockMemos')) || {};
+  memos[symbol] = {
+    text: memo,
+    date: new Date().toLocaleString('ko-KR')
+  };
+  localStorage.setItem('usStockMemos', JSON.stringify(memos));
+  
+  document.getElementById('us-memo-status').innerHTML = 
+    '<span style="color:#10b981;">✅ 메모가 저장되었습니다. (' + memos[symbol].date + ')</span>';
+}
+
+// 미국 주식 메모 불러오기
+function loadUsMemo(symbol) {
+  var memos = JSON.parse(localStorage.getItem('usStockMemos')) || {};
+  var memoArea = document.getElementById('us-analysis-memo');
+  var statusArea = document.getElementById('us-memo-status');
+  var memoCard = document.getElementById('us-memo-card');
+  
+  if (memoCard) {
+    memoCard.style.display = 'block';
+  }
+  
+  if (memos[symbol]) {
+    memoArea.value = memos[symbol].text;
+    statusArea.innerHTML = 
+      '<span style="color:#3b82f6;">📅 마지막 저장: ' + memos[symbol].date + '</span>';
+  } else {
+    memoArea.value = '';
+    statusArea.innerHTML = '<span style="color:#999;">저장된 메모가 없습니다.</span>';
+  }
+}
+
+// 미국 주식 메모 삭제
+function deleteUsMemo(symbol) {
+  if (!symbol && selectedUsStock) {
+    symbol = selectedUsStock.symbol;
+  }
+  
+  if (!symbol) {
+    alert('종목을 먼저 검색하세요.');
+    return;
+  }
+  
+  if (!confirm('이 종목의 메모를 삭제하시겠습니까?')) {
+    return;
+  }
+  
+  var memos = JSON.parse(localStorage.getItem('usStockMemos')) || {};
+  delete memos[symbol];
+  localStorage.setItem('usStockMemos', JSON.stringify(memos));
+  
+  document.getElementById('us-analysis-memo').value = '';
+  document.getElementById('us-memo-status').innerHTML = 
+    '<span style="color:#ef4444;">🗑️ 메모가 삭제되었습니다.</span>';
+}
+
+
 // 이동평균선 계산 함수
 function calculateMA(data, period) {
   var result = [];
@@ -1259,6 +1329,16 @@ function initEventListeners() {
   document.getElementById('delete-memo-btn').addEventListener('click', function() {
     deleteMemo();
   });
+
+  // 미국 주식 분석 메모 저장 버튼
+  document.getElementById('us-save-memo-btn').addEventListener('click', function() {
+    saveUsMemo();
+  });
+  
+  // 미국 주식 분석 메모 삭제 버튼
+  document.getElementById('us-delete-memo-btn').addEventListener('click', function() {
+    deleteUsMemo();
+  });
 }
 
 
@@ -2208,6 +2288,10 @@ async function drawUsStockChart(symbol) {
     // ATR 카드 표시 및 차트 생성
     document.getElementById('us-atr-card').style.display = 'block';
     createATRChart('us-atr-chart', chartData);
+
+
+    // 저장된 메모 불러오기
+    loadUsMemo(symbol);
 
 
   } catch (error) {
