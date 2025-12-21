@@ -116,6 +116,71 @@ function toggleUsIndicator(indicator) {
 }
 
 
+// ==================== 분석 메모 ====================
+// 메모 저장
+function saveMemo(stockCode) {
+  var memo = document.getElementById('analysis-memo').value;
+  if (!stockCode) {
+    stockCode = document.getElementById('analysis-stock-code').value;
+  }
+  
+  if (!stockCode) {
+    alert('종목코드를 먼저 입력하세요.');
+    return;
+  }
+  
+  var memos = JSON.parse(localStorage.getItem('stockMemos')) || {};
+  memos[stockCode] = {
+    text: memo,
+    date: new Date().toLocaleString('ko-KR')
+  };
+  localStorage.setItem('stockMemos', JSON.stringify(memos));
+  
+  document.getElementById('memo-status').innerHTML = 
+    '<span style="color:#10b981;">✅ 메모가 저장되었습니다. (' + memos[stockCode].date + ')</span>';
+}
+
+// 메모 불러오기
+function loadMemo(stockCode) {
+  var memos = JSON.parse(localStorage.getItem('stockMemos')) || {};
+  var memoArea = document.getElementById('analysis-memo');
+  var statusArea = document.getElementById('memo-status');
+  
+  if (memos[stockCode]) {
+    memoArea.value = memos[stockCode].text;
+    statusArea.innerHTML = 
+      '<span style="color:#3b82f6;">📅 마지막 저장: ' + memos[stockCode].date + '</span>';
+  } else {
+    memoArea.value = '';
+    statusArea.innerHTML = '<span style="color:#999;">저장된 메모가 없습니다.</span>';
+  }
+}
+
+// 메모 삭제
+function deleteMemo(stockCode) {
+  if (!stockCode) {
+    stockCode = document.getElementById('analysis-stock-code').value;
+  }
+  
+  if (!stockCode) {
+    alert('종목코드를 먼저 입력하세요.');
+    return;
+  }
+  
+  if (!confirm('이 종목의 메모를 삭제하시겠습니까?')) {
+    return;
+  }
+  
+  var memos = JSON.parse(localStorage.getItem('stockMemos')) || {};
+  delete memos[stockCode];
+  localStorage.setItem('stockMemos', JSON.stringify(memos));
+  
+  document.getElementById('analysis-memo').value = '';
+  document.getElementById('memo-status').innerHTML = 
+    '<span style="color:#ef4444;">🗑️ 메모가 삭제되었습니다.</span>';
+}
+
+
 // 이동평균선 계산 함수
 function calculateMA(data, period) {
   var result = [];
@@ -1185,6 +1250,15 @@ function initEventListeners() {
     if (e.key === 'Enter') analyzeAiSentiment();
   });
 
+  // 분석 메모 저장 버튼
+  document.getElementById('save-memo-btn').addEventListener('click', function() {
+    saveMemo();
+  });
+  
+  // 분석 메모 삭제 버튼
+  document.getElementById('delete-memo-btn').addEventListener('click', function() {
+    deleteMemo();
+  });
 }
 
 
@@ -1577,6 +1651,9 @@ async function drawStockChart(stockCode) {
 
     // ATR 차트 생성
     createATRChart('atr-chart', chartData);
+
+    // 저장된 메모 불러오기
+    loadMemo(stockCode);
     
   } catch (error) {
     console.error('차트 오류:', error);
