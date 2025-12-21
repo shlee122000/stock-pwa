@@ -140,6 +140,29 @@ function changeTimeframe(timeframe) {
 }
 
 
+// 미국 주식 현재 선택된 시간대
+var currentUsTimeframe = 'daily';
+
+// 미국 주식 시간대 변경 함수
+function changeUsTimeframe(timeframe) {
+  currentUsTimeframe = timeframe;
+  
+  // 버튼 스타일 업데이트
+  document.querySelectorAll('.us-timeframe-btn').forEach(function(btn) {
+    btn.classList.remove('active');
+  });
+  var activeBtn = document.querySelector('[data-us-timeframe="' + timeframe + '"]');
+  if (activeBtn) {
+    activeBtn.classList.add('active');
+  }
+  
+  // 차트 다시 그리기
+  if (selectedUsStock && selectedUsStock.symbol) {
+    drawUsStockChart(selectedUsStock.symbol);
+  }
+}
+
+
 // 일봉 → 주봉 변환
 function convertToWeekly(dailyData) {
   var weeklyData = [];
@@ -2381,7 +2404,43 @@ async function drawUsStockChart(symbol) {
     
     document.getElementById('us-chart-card').style.display = 'block';
     
-    var rawData = result.data.slice(-200);
+    // 시간대에 따라 데이터 개수 조정
+    var dataCount = 200;
+    if (currentUsTimeframe === 'weekly') {
+      dataCount = 1500;
+    } else if (currentUsTimeframe === 'monthly') {
+      dataCount = 2000;
+    }
+
+    var rawData = result.data.slice(-dataCount);
+
+    // 주봉/월봉 변환
+    if (currentUsTimeframe === 'weekly') {
+      rawData = convertToWeekly(rawData);
+    } else if (currentUsTimeframe === 'monthly') {
+      rawData = convertToMonthly(rawData);
+    }
+
+    // 날짜 형식 변환 (RSI/MACD 등에 전달할 데이터)
+    var formattedData = rawData.map(function(item) {
+      var dateStr = item.date || item.time;
+      var formattedDate = dateStr;
+      
+      if (dateStr && dateStr.length === 8 && !dateStr.includes('-')) {
+        formattedDate = dateStr.substring(0, 4) + '-' + 
+                        dateStr.substring(4, 6) + '-' + 
+                        dateStr.substring(6, 8);
+      }
+      
+      return {
+        time: formattedDate,
+        open: parseFloat(item.open || item.close),
+        high: parseFloat(item.high || item.close),
+        low: parseFloat(item.low || item.close),
+        close: parseFloat(item.close),
+        volume: item.volume || 0
+      };
+    });
     
     // 날짜 형식 변환
     var chartData = rawData.map(function(item) {
@@ -2421,21 +2480,21 @@ async function drawUsStockChart(symbol) {
     
     // RSI 카드 표시 및 차트 생성
     document.getElementById('us-rsi-card').style.display = 'block';
-    createRSIChart('us-rsi-chart', chartData);
+    createRSIChart('us-rsi-chart', formattedData);
 
     // MACD 카드 표시 및 차트 생성
     document.getElementById('us-macd-card').style.display = 'block';
-    createMACDChart('us-macd-chart', chartData);
+    createMACDChart('us-macd-chart', formattedData);
 
 
     // 스토캐스틱 카드 표시 및 차트 생성
     document.getElementById('us-stochastic-card').style.display = 'block';
-    createStochasticChart('us-stochastic-chart', chartData);
+    createStochasticChart('us-stochastic-chart', formattedData);
 
 
     // ATR 카드 표시 및 차트 생성
     document.getElementById('us-atr-card').style.display = 'block';
-    createATRChart('us-atr-chart', chartData);
+    createATRChart('us-atr-chart', formattedData);
 
 
     // 저장된 메모 불러오기

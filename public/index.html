@@ -326,6 +326,13 @@
         <div id="us-search-results" class="result-area" style="margin-bottom:20px;"></div>
         <div class="card" id="us-chart-card" style="display:none;">
           <h3>📈 주가 차트</h3>
+
+          <div style="margin-bottom: 10px; display: flex; gap: 5px;">
+            <button class="us-timeframe-btn active" data-us-timeframe="daily" onclick="changeUsTimeframe('daily')">일봉</button>
+            <button class="us-timeframe-btn" data-us-timeframe="weekly" onclick="changeUsTimeframe('weekly')">주봉</button>
+            <button class="us-timeframe-btn" data-us-timeframe="monthly" onclick="changeUsTimeframe('monthly')">월봉</button>
+          </div>
+
           <div style="margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 5px;">
             <button class="indicator-btn active" data-indicator="us-ma" onclick="toggleUsIndicator('ma')">이동평균선</button>
             <button class="indicator-btn active" data-indicator="us-bb" onclick="toggleUsIndicator('bb')">볼린저밴드</button>
