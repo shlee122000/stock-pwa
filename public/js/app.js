@@ -271,6 +271,58 @@ function calculateIchimoku(data, tenkanPeriod, kijunPeriod, senkouBPeriod) {
 }
 
 
+// 스토캐스틱 계산 함수
+function calculateStochastic(data, kPeriod, dPeriod) {
+  var result = {
+    k: [],
+    d: []
+  };
+  
+  var kValues = [];
+  
+  for (var i = 0; i < data.length; i++) {
+    if (i < kPeriod - 1) {
+      continue;
+    }
+    
+    // 기간 내 최고가, 최저가 찾기
+    var highestHigh = -Infinity;
+    var lowestLow = Infinity;
+    
+    for (var j = i - kPeriod + 1; j <= i; j++) {
+      if (data[j].high > highestHigh) highestHigh = data[j].high;
+      if (data[j].low < lowestLow) lowestLow = data[j].low;
+    }
+    
+    // %K 계산
+    var k = 0;
+    if (highestHigh - lowestLow !== 0) {
+      k = ((data[i].close - lowestLow) / (highestHigh - lowestLow)) * 100;
+    }
+    
+    kValues.push({ time: data[i].time, value: k });
+    result.k.push({ time: data[i].time, value: k });
+  }
+  
+  // %D 계산 (%K의 이동평균)
+  for (var i = 0; i < kValues.length; i++) {
+    if (i < dPeriod - 1) {
+      continue;
+    }
+    
+    var sum = 0;
+    for (var j = i - dPeriod + 1; j <= i; j++) {
+      sum += kValues[j].value;
+    }
+    var d = sum / dPeriod;
+    
+    result.d.push({ time: kValues[i].time, value: d });
+  }
+  
+  return result;
+}
+
+
 // ==================== TradingView 차트 ====================
 function createTradingViewChart(containerId, data, isKorean) {
   try {
@@ -675,6 +727,100 @@ function createMACDChart(containerId, data) {
     return null;
   }
 }
+
+
+// 스토캐스틱 차트 생성
+function createStochasticChart(containerId, data) {
+  try {
+    var container = document.getElementById(containerId);
+    if (!container) return null;
+    container.innerHTML = '';
+    
+    if (typeof LightweightCharts === 'undefined') {
+      console.error('TradingView 라이브러리가 로드되지 않았습니다.');
+      return null;
+    }
+    
+    var chart = LightweightCharts.createChart(container, {
+      width: container.clientWidth,
+      height: 150,
+      layout: {
+        background: { color: '#ffffff' },
+        textColor: '#333'
+      },
+      grid: {
+        vertLines: { color: '#f0f0f0' },
+        horzLines: { color: '#f0f0f0' }
+      },
+      rightPriceScale: {
+        borderColor: '#cccccc',
+        scaleMargins: { top: 0.1, bottom: 0.1 }
+      },
+      timeScale: {
+        borderColor: '#cccccc',
+        timeVisible: true,
+        visible: true
+      }
+    });
+    
+    var stochData = calculateStochastic(data, 14, 3);
+    
+    // %K 라인 (파란색)
+    var kSeries = chart.addSeries(LightweightCharts.LineSeries, {
+      color: '#3b82f6',
+      lineWidth: 2,
+      title: '%K',
+      priceLineVisible: false
+    });
+    kSeries.setData(stochData.k);
+    
+    // %D 라인 (주황색)
+    var dSeries = chart.addSeries(LightweightCharts.LineSeries, {
+      color: '#f59e0b',
+      lineWidth: 2,
+      title: '%D',
+      priceLineVisible: false
+    });
+    dSeries.setData(stochData.d);
+    
+    // 과매수선 (80)
+    var overboughtLine = chart.addSeries(LightweightCharts.LineSeries, {
+      color: '#ef4444',
+      lineWidth: 1,
+      lineStyle: 2,
+      title: '80',
+      priceLineVisible: false,
+      lastValueVisible: false
+    });
+    overboughtLine.setData(data.map(function(d) { return { time: d.time, value: 80 }; }));
+    
+    // 과매도선 (20)
+    var oversoldLine = chart.addSeries(LightweightCharts.LineSeries, {
+      color: '#22c55e',
+      lineWidth: 1,
+      lineStyle: 2,
+      title: '20',
+      priceLineVisible: false,
+      lastValueVisible: false
+    });
+    oversoldLine.setData(data.map(function(d) { return { time: d.time, value: 20 }; }));
+    
+    chart.timeScale().fitContent();
+    
+    // 반응형
+    var resizeObserver = new ResizeObserver(function() {
+      chart.applyOptions({ width: container.clientWidth });
+    });
+    resizeObserver.observe(container);
+    
+    return chart;
+    
+  } catch (error) {
+    console.error('스토캐스틱 차트 생성 오류:', error);
+    return null;
+  }
+}
+
 
 
 // ==================== 초기화 ====================
@@ -1228,7 +1374,7 @@ async function drawStockChart(stockCode) {
       return;
     }
     
-    var rawData = result.data.slice(-120);
+    var rawData = result.data.slice(-200);
     
     // 날짜 형식 변환 (YYYYMMDD → YYYY-MM-DD)
     var chartData = rawData.map(function(item) {
@@ -1271,6 +1417,9 @@ async function drawStockChart(stockCode) {
     
     // MACD 차트 생성
     createMACDChart('macd-chart', chartData);
+
+    // 스토캐스틱 차트 생성
+    createStochasticChart('stochastic-chart', chartData);
     
   } catch (error) {
     console.error('차트 오류:', error);
@@ -1770,7 +1919,7 @@ async function drawUsStockChart(symbol) {
     
     document.getElementById('us-chart-card').style.display = 'block';
     
-    var rawData = result.data.slice(-120);
+    var rawData = result.data.slice(-200);
     
     // 날짜 형식 변환
     var chartData = rawData.map(function(item) {
@@ -1817,6 +1966,11 @@ async function drawUsStockChart(symbol) {
     createMACDChart('us-macd-chart', chartData);
 
 
+    // 스토캐스틱 카드 표시 및 차트 생성
+    document.getElementById('us-stochastic-card').style.display = 'block';
+    createStochasticChart('us-stochastic-chart', chartData);
+
+    
   } catch (error) {
     console.error('미국 주식 차트 오류:', error);
   }
