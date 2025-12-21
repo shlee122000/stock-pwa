@@ -2407,9 +2407,9 @@ async function drawUsStockChart(symbol) {
     // 시간대에 따라 데이터 개수 조정
     var dataCount = 200;
     if (currentUsTimeframe === 'weekly') {
-      dataCount = 1500;
-    } else if (currentUsTimeframe === 'monthly') {
       dataCount = 2000;
+    } else if (currentUsTimeframe === 'monthly') {
+      dataCount = 3000;
     }
 
     var rawData = result.data.slice(-dataCount);
