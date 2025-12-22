@@ -124,7 +124,7 @@ async function getCompanyProfile(symbol) {
 async function getCandles(symbol, resolution, from, to) {
   try {
     // Yahoo Finance API 사용
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1y`;
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5y`;
     
     console.log('Yahoo 차트 URL:', url);
     

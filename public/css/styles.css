@@ -973,3 +973,49 @@ tr:hover {
   color: white;
   border-color: #10b981;
 }
+
+
+/* 보조 지표 토글 버튼 */
+.sub-indicator-btn {
+  padding: 5px 12px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background: #f5f5f5;
+  color: #666;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.sub-indicator-btn:hover {
+  background: #e0e0e0;
+}
+
+.sub-indicator-btn.active {
+  background: #8b5cf6;
+  color: white;
+  border-color: #8b5cf6;
+}
+
+
+/* 미국 주식 보조 지표 토글 버튼 */
+.us-sub-indicator-btn {
+  padding: 5px 12px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background: #f5f5f5;
+  color: #666;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.us-sub-indicator-btn:hover {
+  background: #e0e0e0;
+}
+
+.us-sub-indicator-btn.active {
+  background: #8b5cf6;
+  color: white;
+  border-color: #8b5cf6;
+}

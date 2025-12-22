@@ -163,6 +163,82 @@ function changeUsTimeframe(timeframe) {
 }
 
 
+// 보조 지표 표시 설정
+var subIndicatorSettings = {
+  rsi: true,
+  macd: true,
+  stochastic: true,
+  atr: true
+};
+
+// 보조 지표 토글 함수
+function toggleSubIndicator(indicator) {
+  subIndicatorSettings[indicator] = !subIndicatorSettings[indicator];
+  
+  // 버튼 스타일 업데이트
+  var btn = document.querySelector('[data-sub-indicator="' + indicator + '"]');
+  if (btn) {
+    if (subIndicatorSettings[indicator]) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  }
+  
+  // 해당 차트 카드 표시/숨김
+  var cardId = '';
+  if (indicator === 'rsi') cardId = 'rsi-chart';
+  else if (indicator === 'macd') cardId = 'macd-chart';
+  else if (indicator === 'stochastic') cardId = 'stochastic-chart';
+  else if (indicator === 'atr') cardId = 'atr-chart';
+  
+  var chartElement = document.getElementById(cardId);
+  if (chartElement) {
+    var card = chartElement.closest('.card');
+    if (card) {
+      card.style.display = subIndicatorSettings[indicator] ? 'block' : 'none';
+    }
+  }
+}
+
+
+// 미국 주식 보조 지표 표시 설정
+var usSubIndicatorSettings = {
+  rsi: true,
+  macd: true,
+  stochastic: true,
+  atr: true
+};
+
+// 미국 주식 보조 지표 토글 함수
+function toggleUsSubIndicator(indicator) {
+  usSubIndicatorSettings[indicator] = !usSubIndicatorSettings[indicator];
+  
+  // 버튼 스타일 업데이트
+  var btn = document.querySelector('[data-us-sub-indicator="' + indicator + '"]');
+  if (btn) {
+    if (usSubIndicatorSettings[indicator]) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  }
+  
+  // 해당 차트 카드 표시/숨김
+  var cardId = '';
+  if (indicator === 'rsi') cardId = 'us-rsi-card';
+  else if (indicator === 'macd') cardId = 'us-macd-card';
+  else if (indicator === 'stochastic') cardId = 'us-stochastic-card';
+  else if (indicator === 'atr') cardId = 'us-atr-card';
+  
+  var card = document.getElementById(cardId);
+  if (card) {
+    card.style.display = usSubIndicatorSettings[indicator] ? 'block' : 'none';
+  }
+}
+
+
+
 // 일봉 → 주봉 변환
 function convertToWeekly(dailyData) {
   var weeklyData = [];
@@ -2479,7 +2555,8 @@ async function drawUsStockChart(symbol) {
     tvUsStockChart = createTradingViewChart('us-stock-chart', chartData, false, usIndicatorSettings);
     
     // RSI 카드 표시 및 차트 생성
-    document.getElementById('us-rsi-card').style.display = 'block';
+    // 보조 지표 선택 카드 표시
+    document.getElementById('us-sub-indicator-card').style.display = 'block';
     createRSIChart('us-rsi-chart', formattedData);
 
     // MACD 카드 표시 및 차트 생성

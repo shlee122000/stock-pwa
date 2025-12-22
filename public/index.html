@@ -217,6 +217,17 @@
           </div>
         </div>
 
+        <div class="card" style="margin-top:20px;">
+          <h3>📊 보조 지표 선택</h3>
+          <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+            <button class="sub-indicator-btn active" data-sub-indicator="rsi" onclick="toggleSubIndicator('rsi')">RSI</button>
+            <button class="sub-indicator-btn active" data-sub-indicator="macd" onclick="toggleSubIndicator('macd')">MACD</button>
+            <button class="sub-indicator-btn active" data-sub-indicator="stochastic" onclick="toggleSubIndicator('stochastic')">스토캐스틱</button>
+            <button class="sub-indicator-btn active" data-sub-indicator="atr" onclick="toggleSubIndicator('atr')">ATR</button>
+          </div>
+        </div>
+
+
         <div class="card" style="margin-top:10px;">
           <h3>📉 RSI (14)</h3>
           <div class="chart-wrapper">
@@ -345,6 +356,17 @@
             </div>
           </div>
         </div>
+
+        <div class="card" id="us-sub-indicator-card" style="display:none; margin-top:20px;">
+          <h3>📊 보조 지표 선택</h3>
+          <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+            <button class="us-sub-indicator-btn active" data-us-sub-indicator="rsi" onclick="toggleUsSubIndicator('rsi')">RSI</button>
+            <button class="us-sub-indicator-btn active" data-us-sub-indicator="macd" onclick="toggleUsSubIndicator('macd')">MACD</button>
+            <button class="us-sub-indicator-btn active" data-us-sub-indicator="stochastic" onclick="toggleUsSubIndicator('stochastic')">스토캐스틱</button>
+            <button class="us-sub-indicator-btn active" data-us-sub-indicator="atr" onclick="toggleUsSubIndicator('atr')">ATR</button>
+          </div>
+        </div>
+
 
         <div class="card" id="us-rsi-card" style="display:none; margin-top:10px;">
           <h3>📉 RSI (14)</h3>
