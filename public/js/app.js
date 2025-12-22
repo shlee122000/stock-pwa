@@ -8376,6 +8376,7 @@ function analyzeUsTimingSignals(tech) {
   };
 }
 
+
 // 미국 타이밍 결과 표시
 function displayUsTimingResult(symbol, tech, signals) {
   var container = document.getElementById('us-ai-result');
@@ -8418,10 +8419,104 @@ function displayUsTimingResult(symbol, tech, signals) {
     html += '</ul></div>';
   }
   
+  // 접히는 설명 패널 추가
+  html += '<div style="margin-top:15px;">';
+  html += '<button onclick="toggleUsTimingGuide()" style="width:100%; padding:12px; background:#e0f2fe; border:1px solid #7dd3fc; border-radius:8px; cursor:pointer; font-weight:bold; text-align:left; display:flex; justify-content:space-between; align-items:center;">';
+  html += '<span>📖 매매 타이밍 해석 가이드</span>';
+  html += '<span id="usTimingGuideToggle">▼</span>';
+  html += '</button>';
+  html += '<div id="usTimingGuideContent" style="display:none; padding:15px; background:#f0f9ff; border-radius:0 0 8px 8px; border:1px solid #7dd3fc; border-top:none; margin-top:-1px;">';
+  
+  // RSI 설명
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#3b82f6;">📊 RSI (Relative Strength Index)</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>의미:</strong> 과매수/과매도 판단 지표 (0~100)</li>';
+  html += '<li><strong>70 이상:</strong> 과매수 구간 → 조정 가능성 (매도 고려)</li>';
+  html += '<li><strong>30 이하:</strong> 과매도 구간 → 반등 가능성 (매수 고려)</li>';
+  html += '<li><strong>50 근처:</strong> 중립 구간 → 관망</li>';
+  html += '<li><strong>활용:</strong> 다른 지표와 함께 종합 판단</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // MACD 설명
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#3b82f6;">📈 MACD (Moving Average Convergence Divergence)</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>의미:</strong> 추세의 방향과 강도를 파악하는 지표</li>';
+  html += '<li><strong>골든크로스:</strong> MACD선이 시그널선을 상향 돌파 → 매수 신호</li>';
+  html += '<li><strong>데드크로스:</strong> MACD선이 시그널선을 하향 돌파 → 매도 신호</li>';
+  html += '<li><strong>0선 돌파:</strong> 상승 추세 전환 신호</li>';
+  html += '<li><strong>히스토그램:</strong> 양수 확대 시 상승 강화, 음수 확대 시 하락 강화</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 거래량 설명
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#3b82f6;">📊 거래량 (Volume)</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>의미:</strong> 매매 활동의 활발함을 나타냄</li>';
+  html += '<li><strong>거래량 증가 + 상승:</strong> 강한 매수세 → 상승 지속 가능성</li>';
+  html += '<li><strong>거래량 증가 + 하락:</strong> 강한 매도세 → 추가 하락 주의</li>';
+  html += '<li><strong>거래량 감소:</strong> 관심 부족 → 추세 전환 가능성</li>';
+  html += '<li><strong>평균 거래량 대비 2배 이상:</strong> 평소보다 활발한 매매</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 타이밍 점수 설명
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#3b82f6;">🎯 타이밍 점수란?</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>70점 이상:</strong> 강한 매수 타이밍 (적극 매수 고려)</li>';
+  html += '<li><strong>30점 이하:</strong> 강한 매도 타이밍 (손절/익절 고려)</li>';
+  html += '<li><strong>40-60점:</strong> 중립 구간 (관망 추천)</li>';
+  html += '<li><strong>계산 방식:</strong> RSI, MACD, 이동평균선, 거래량 등을 종합 분석</li>';
+  html += '<li><strong>주의:</strong> 100% 정확한 예측은 불가능, 참고 자료로 활용</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 신호 해석 방법
+  html += '<div style="padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#3b82f6;">🔍 매수/매도 신호 해석</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>복수 매수 신호:</strong> 신뢰도 증가 (2개 이상 시 강한 매수)</li>';
+  html += '<li><strong>복수 매도 신호:</strong> 위험도 증가 (2개 이상 시 강한 매도)</li>';
+  html += '<li><strong>혼재 신호:</strong> 방향성 불확실 (추가 관찰 필요)</li>';
+  html += '<li><strong>신호 없음:</strong> 중립 구간 (급하지 않다면 관망)</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 중요 안내
+  html += '<div style="margin-top:15px; padding:10px; background:#fef3c7; border-radius:6px; border-left:4px solid #f59e0b;">';
+  html += '<p style="margin:0; font-size:0.85rem; color:#92400e; line-height:1.6;">';
+  html += '<strong>⚠️ 투자 유의사항:</strong><br>';
+  html += '• 매매 타이밍은 참고 자료일 뿐, 100% 정확하지 않습니다<br>';
+  html += '• 시장 상황, 뉴스, 재무제표 등을 함께 고려하세요<br>';
+  html += '• 분할 매수/매도로 리스크를 분산하세요<br>';
+  html += '• 손절가를 반드시 설정하여 큰 손실을 방지하세요';
+  html += '</p>';
+  html += '</div>';
+  
+  html += '</div>';
+  html += '</div>';
+  
   html += '</div>';
   container.innerHTML = html;
 }
 
+// 미국 매매 타이밍 가이드 토글 함수
+function toggleUsTimingGuide() {
+  var content = document.getElementById('usTimingGuideContent');
+  var toggle = document.getElementById('usTimingGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
 
 // ==================== 미국 AI 리스크 분석 ====================
 async function analyzeUsAiRisk() {
@@ -8546,8 +8641,104 @@ function displayUsRiskResult(symbol, tech, risk) {
   html += '</table>';
   html += '</div>';
   
+  // 접히는 설명 패널 추가
+  html += '<div style="margin-top:15px;">';
+  html += '<button onclick="toggleUsRiskGuide()" style="width:100%; padding:12px; background:#e0f2fe; border:1px solid #7dd3fc; border-radius:8px; cursor:pointer; font-weight:bold; text-align:left; display:flex; justify-content:space-between; align-items:center;">';
+  html += '<span>📖 리스크 분석 해석 가이드</span>';
+  html += '<span id="usRiskGuideToggle">▼</span>';
+  html += '</button>';
+  html += '<div id="usRiskGuideContent" style="display:none; padding:15px; background:#f0f9ff; border-radius:0 0 8px 8px; border:1px solid #7dd3fc; border-top:none; margin-top:-1px;">';
+  
+  // VaR 설명
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#dc2626;">📊 VaR (Value at Risk)</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>의미:</strong> 특정 기간 동안 발생할 수 있는 최대 손실 금액 (통계적 예측)</li>';
+  html += '<li><strong>95% 신뢰도:</strong> 100일 중 95일은 이 손실 범위 안에 있다는 의미</li>';
+  html += '<li><strong>일일 VaR -3%:</strong> 하루에 3% 이상 손실이 날 확률은 5% (20일 중 1일)</li>';
+  html += '<li><strong>주간 VaR -7%:</strong> 일주일에 7% 이상 손실이 날 확률은 5%</li>';
+  html += '<li><strong>활용:</strong> 투자 금액 결정 시 감당 가능한 손실 범위 파악</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // ATR 설명
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#ea580c;">📈 ATR (Average True Range)</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>의미:</strong> 일정 기간(보통 14일) 동안의 평균 가격 변동폭</li>';
+  html += '<li><strong>ATR $5:</strong> 하루에 평균 $5 정도 움직인다는 의미</li>';
+  html += '<li><strong>높은 ATR:</strong> 변동성 큼 → 리스크 크지만 수익 기회도 큼</li>';
+  html += '<li><strong>낮은 ATR:</strong> 변동성 작음 → 안정적이지만 수익률도 제한적</li>';
+  html += '<li><strong>활용:</strong> 손절가/목표가 설정, 포지션 크기 결정</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 리스크 등급 설명
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#3b82f6;">⚠️ 리스크 등급</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>높음 (일일 변동성 3% 이상):</strong> 하루에 큰 등락 가능 → 단기 트레이딩, 소액 투자</li>';
+  html += '<li><strong>보통 (1.5~3%):</strong> 적당한 변동성 → 중기 투자 적합</li>';
+  html += '<li><strong>낮음 (1.5% 미만):</strong> 안정적 → 장기 투자, 대량 투자 가능</li>';
+  html += '<li><strong>초보자:</strong> 낮음~보통 등급 종목부터 시작 권장</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 손절가/목표가 설명
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#16a34a;">🎯 손절가 & 목표가</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>손절가 (Stop Loss):</strong> 이 가격까지 떨어지면 무조건 매도하여 큰 손실 방지</li>';
+  html += '<li><strong>계산법:</strong> 현재가 - (ATR × 2) → 평균 변동폭의 2배 하락 시</li>';
+  html += '<li><strong>목표가 (Target Price):</strong> 이 가격까지 오르면 익절 고려</strong></li>';
+  html += '<li><strong>계산법:</strong> 현재가 + (ATR × 3) → 평균 변동폭의 3배 상승 시</li>';
+  html += '<li><strong>리스크:리워드 비율:</strong> 1:1.5 (손실 2만큼 감수하면 이익 3 기대)</li>';
+  html += '<li><strong>필수:</strong> 매수 즉시 손절가 주문 설정 습관화</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 투자 전략
+  html += '<div style="padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#7c3aed;">💡 리스크별 투자 전략</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>고위험 종목:</strong> 투자 비중 5~10%, 단기 매매, 타이트한 손절</li>';
+  html += '<li><strong>중위험 종목:</strong> 투자 비중 15~25%, 중기 보유, 적정 손절</li>';
+  html += '<li><strong>저위험 종목:</strong> 투자 비중 30% 이상 가능, 장기 보유</li>';
+  html += '<li><strong>분산 투자:</strong> 서로 다른 리스크 등급 종목을 조합</li>';
+  html += '<li><strong>포지션 크기:</strong> VaR를 보고 총 자산 대비 감당 가능한 금액만 투자</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 중요 안내
+  html += '<div style="margin-top:15px; padding:10px; background:#fef3c7; border-radius:6px; border-left:4px solid #f59e0b;">';
+  html += '<p style="margin:0; font-size:0.85rem; color:#92400e; line-height:1.6;">';
+  html += '<strong>⚠️ 리스크 관리 원칙:</strong><br>';
+  html += '• VaR는 과거 데이터 기반 예측이며, 실제 손실은 더 클 수 있습니다<br>';
+  html += '• 한 종목에 전체 자산의 20% 이상 투자하지 마세요<br>';
+  html += '• 손절가는 반드시 설정하고, 감정에 흔들리지 말고 지키세요<br>';
+  html += '• 감당할 수 없는 손실 금액이라면 투자 금액을 줄이세요';
+  html += '</p>';
+  html += '</div>';
+  
+  html += '</div>';
+  html += '</div>';
+  
   html += '</div>';
   container.innerHTML = html;
+}
+
+// 미국 리스크 가이드 토글 함수
+function toggleUsRiskGuide() {
+  var content = document.getElementById('usRiskGuideContent');
+  var toggle = document.getElementById('usRiskGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
 }
 
 
@@ -8592,6 +8783,7 @@ async function analyzeUsAiPattern() {
   hideLoading();
 }
 
+
 // 미국 패턴 결과 표시
 function displayUsPatternResult(symbol, tech, patterns) {
   var container = document.getElementById('us-ai-result');
@@ -8634,21 +8826,115 @@ function displayUsPatternResult(symbol, tech, patterns) {
   
   html += '</div>';
   
-  // 패턴 해석 가이드
-  html += '<div style="margin-top:15px; padding:15px; background:#fef3c7; border-radius:8px;">';
-  html += '<h4>📋 패턴 해석 가이드</h4>';
-  html += '<ul style="margin:10px 0 0 20px; color:#666; font-size:0.9rem;">';
-  html += '<li><strong>Double Bottom</strong>: W shape, bullish reversal</li>';
-  html += '<li><strong>Double Top</strong>: M shape, bearish reversal</li>';
-  html += '<li><strong>Triangle</strong>: Consolidation, breakout expected</li>';
-  html += '<li><strong>Range</strong>: Buy at support, sell at resistance</li>';
+  // 접히는 설명 패널 추가
+  html += '<div style="margin-top:15px;">';
+  html += '<button onclick="toggleUsPatternGuide()" style="width:100%; padding:12px; background:#e0f2fe; border:1px solid #7dd3fc; border-radius:8px; cursor:pointer; font-weight:bold; text-align:left; display:flex; justify-content:space-between; align-items:center;">';
+  html += '<span>📖 차트 패턴 해석 가이드</span>';
+  html += '<span id="usPatternGuideToggle">▼</span>';
+  html += '</button>';
+  html += '<div id="usPatternGuideContent" style="display:none; padding:15px; background:#f0f9ff; border-radius:0 0 8px 8px; border:1px solid #7dd3fc; border-top:none; margin-top:-1px;">';
+  
+  // 반전 패턴
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#16a34a;">📈 상승 반전 패턴 (Bullish Reversal)</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>Double Bottom (더블바텀, W형):</strong> 두 번 저점 확인 후 반등 → 강력한 매수 신호</li>';
+  html += '<li><strong>Inverse Head & Shoulders (역헤드앤숄더):</strong> 머리-어깨-머리 형태의 바닥 → 큰 상승 기대</li>';
+  html += '<li><strong>Ascending Triangle (상승 삼각수렴):</strong> 고점은 수평, 저점은 상승 → 위로 돌파 시 매수</li>';
+  html += '<li><strong>Cup and Handle (컵앤핸들):</strong> U자 바닥 + 작은 조정 → 장기 상승 신호</li>';
+  html += '<li><strong>공통 전략:</strong> 네크라인(저항선) 돌파 확인 후 매수</li>';
   html += '</ul>';
+  html += '</div>';
+  
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#dc2626;">📉 하락 반전 패턴 (Bearish Reversal)</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>Double Top (더블탑, M형):</strong> 두 번 고점 실패 후 하락 → 강력한 매도 신호</li>';
+  html += '<li><strong>Head & Shoulders (헤드앤숄더):</strong> 어깨-머리-어깨 형태의 천장 → 큰 하락 경고</li>';
+  html += '<li><strong>Descending Triangle (하락 삼각수렴):</strong> 저점은 수평, 고점은 하락 → 아래로 이탈 시 매도</li>';
+  html += '<li><strong>Rounding Top (라운딩탑):</strong> 반원형 천장 → 서서히 하락</li>';
+  html += '<li><strong>공통 전략:</strong> 네크라인(지지선) 이탈 시 손절 또는 공매도</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 지속 패턴
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#3b82f6;">➡️ 추세 지속 패턴 (Continuation)</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>Bull/Bear Flag (상승/하락 깃발):</strong> 급등/급락 후 짧은 조정 → 기존 방향 재개</li>';
+  html += '<li><strong>Symmetrical Triangle (대칭 삼각수렴):</strong> 고점 하락 + 저점 상승 → 돌파 방향으로 큰 움직임</li>';
+  html += '<li><strong>Rectangle/Range (박스권):</strong> 일정 범위 반복 → 지지선 매수, 저항선 매도</li>';
+  html += '<li><strong>Rising Channel (상승 채널):</strong> 평행한 상승 추세선 → 추세 유지 시 분할 매수</li>';
+  html += '<li><strong>활용:</strong> 패턴 이탈 시 큰 가격 변동 발생</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 신뢰도 설명
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#7c3aed;">🎯 신뢰도 점수</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>높음:</strong> 패턴이 명확하고 전형적 → 높은 확률로 예측 방향 진행</li>';
+  html += '<li><strong>보통:</strong> 패턴이 형성 중이거나 일부 조건 미충족 → 참고용</li>';
+  html += '<li><strong>낮음:</strong> 패턴이 불완전하거나 다른 신호와 상충 → 신중히 판단</li>';
+  html += '<li><strong>거래량 확인:</strong> 패턴 돌파 시 거래량 급증하면 신뢰도 UP</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 목표가 계산
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#ea580c;">📊 목표가 계산법 (Price Target)</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>Double Top/Bottom:</strong> 목표가 = 네크라인 ± 패턴 높이</li>';
+  html += '<li><strong>Head & Shoulders:</strong> 목표가 = 네크라인 ± (머리 - 네크라인)</li>';
+  html += '<li><strong>Triangle:</strong> 목표가 = 돌파점 ± 삼각형 밑변 길이</li>';
+  html += '<li><strong>Rectangle:</strong> 목표가 = 돌파점 ± 박스 높이</li>';
+  html += '<li><strong>예시:</strong> 더블바텀에서 고점 $110, 저점 $90 → 돌파 후 목표가 $130</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 패턴 활용 전략
+  html += '<div style="padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#0891b2;">💡 패턴 활용 전략</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>진입 타이밍:</strong> 패턴 완성 + 네크라인 돌파 + 거래량 증가 시</li>';
+  html += '<li><strong>손절가 설정:</strong> 반전 패턴의 경우 패턴 반대쪽 끝</li>';
+  html += '<li><strong>분할 매수/매도:</strong> 돌파 시 1/3, 중간 지점 1/3, 목표가 근처 1/3</li>';
+  html += '<li><strong>여러 지표 확인:</strong> RSI, MACD, 이동평균선과 함께 종합 판단</li>';
+  html += '<li><strong>가짜 돌파 주의:</strong> 돌파 후 다시 패턴 내부로 회귀 시 손절</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 중요 안내
+  html += '<div style="margin-top:15px; padding:10px; background:#fef3c7; border-radius:6px; border-left:4px solid #f59e0b;">';
+  html += '<p style="margin:0; font-size:0.85rem; color:#92400e; line-height:1.6;">';
+  html += '<strong>⚠️ 차트 패턴 주의사항:</strong><br>';
+  html += '• 패턴은 과거 가격 움직임 기반 예측이며, 항상 맞는 것은 아닙니다<br>';
+  html += '• 패턴 형성 중에는 매매하지 말고, 완성 및 돌파 확인 후 진입하세요<br>';
+  html += '• 뉴스, 실적 발표 등 펀더멘털 변화가 패턴을 무효화할 수 있습니다<br>';
+  html += '• 단기 차트보다 장기 차트의 패턴이 더 신뢰도가 높습니다';
+  html += '</p>';
+  html += '</div>';
+  
+  html += '</div>';
   html += '</div>';
   
   html += '</div>';
   container.innerHTML = html;
 }
 
+// 미국 차트 패턴 가이드 토글 함수
+function toggleUsPatternGuide() {
+  var content = document.getElementById('usPatternGuideContent');
+  var toggle = document.getElementById('usPatternGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
 
 
 // ==================== 미국 AI 뉴스 감성 분석 ====================
@@ -8790,6 +9076,7 @@ function analyzeUsSentiment(newsList) {
   };
 }
 
+
 // 미국 감성 분석 결과 표시
 function displayUsSentimentResult(symbol, newsList, sentiment) {
   var container = document.getElementById('us-ai-result');
@@ -8858,10 +9145,122 @@ function displayUsSentimentResult(symbol, newsList, sentiment) {
   html += '</div>';
   html += '</div>';
   
+  // 접히는 설명 패널 추가
+  html += '<div style="margin-top:15px;">';
+  html += '<button onclick="toggleUsSentimentGuide()" style="width:100%; padding:12px; background:#e0f2fe; border:1px solid #7dd3fc; border-radius:8px; cursor:pointer; font-weight:bold; text-align:left; display:flex; justify-content:space-between; align-items:center;">';
+  html += '<span>📖 뉴스 감성 분석 가이드</span>';
+  html += '<span id="usSentimentGuideToggle">▼</span>';
+  html += '</button>';
+  html += '<div id="usSentimentGuideContent" style="display:none; padding:15px; background:#f0f9ff; border-radius:0 0 8px 8px; border:1px solid #7dd3fc; border-top:none; margin-top:-1px;">';
+  
+  // 뉴스 감성 분석이란
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#3b82f6;">📰 뉴스 감성 분석 (Sentiment Analysis)이란?</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>의미:</strong> AI가 뉴스 기사의 긍정/부정 감정을 자동으로 분석</li>';
+  html += '<li><strong>방법:</strong> 제목과 내용의 키워드를 분석하여 감정 판단</li>';
+  html += '<li><strong>활용:</strong> 시장 심리 파악, 투자 타이밍 결정</li>';
+  html += '<li><strong>예시:</strong> "record profit", "strong growth" → 긍정 / "lawsuit", "decline" → 부정</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 감성 유형 설명
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#16a34a;">🟢 Positive (긍정)</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>의미:</strong> 기업에 유리한 뉴스 (실적 호조, 신제품 출시, 제휴 등)</li>';
+  html += '<li><strong>키워드:</strong> profit, growth, innovation, partnership, breakthrough</li>';
+  html += '<li><strong>영향:</strong> 주가 상승 압력 → 매수 심리 증가</li>';
+  html += '<li><strong>예시:</strong> "Apple announces record iPhone sales"</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#dc2626;">🔴 Negative (부정)</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>의미:</strong> 기업에 불리한 뉴스 (실적 악화, 소송, 사고 등)</li>';
+  html += '<li><strong>키워드:</strong> lawsuit, decline, loss, recall, investigation</li>';
+  html += '<li><strong>영향:</strong> 주가 하락 압력 → 매도 심리 증가</li>';
+  html += '<li><strong>예시:</strong> "Tesla faces safety probe over autopilot"</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#6b7280;">⚪ Neutral (중립)</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>의미:</strong> 가치 판단이 어려운 사실 전달 뉴스</li>';
+  html += '<li><strong>예시:</strong> 단순 인사 발령, 일반 공지, 통계 자료</li>';
+  html += '<li><strong>영향:</strong> 주가에 미미한 영향</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 종합 감성 해석
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#7c3aed;">📊 Overall Sentiment 해석</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>Very Positive (매우 긍정):</strong> 긍정 70% 이상 → 강한 매수 분위기</li>';
+  html += '<li><strong>Positive (긍정):</strong> 긍정 55~70% → 상승 모멘텀 존재</li>';
+  html += '<li><strong>Neutral (중립):</strong> 긍정/부정 균형 → 관망 분위기</li>';
+  html += '<li><strong>Negative (부정):</strong> 부정 55~70% → 하락 우려</li>';
+  html += '<li><strong>Very Negative (매우 부정):</strong> 부정 70% 이상 → 강한 매도 압력</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 투자 활용 전략
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#ea580c;">💡 투자 활용 전략</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>단기 트레이딩:</strong> 긍정 뉴스 발표 직후 단타 매수, 부정 뉴스 시 빠른 손절</li>';
+  html += '<li><strong>중기 투자:</strong> 긍정 뉴스가 지속되면 비중 확대, 부정 뉴스 증가 시 비중 축소</li>';
+  html += '<li><strong>역발상 전략:</strong> 과도한 부정 → 바닥 매수 기회, 과도한 긍정 → 고점 경계</li>';
+  html += '<li><strong>뉴스 타이밍:</strong> 시간 외 거래 뉴스는 다음날 시장 개장 영향</li>';
+  html += '<li><strong>종합 판단:</strong> 뉴스 감성 + 기술적 분석 + 재무제표를 함께 고려</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 주의사항
+  html += '<div style="padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#0891b2;">⚠️ 뉴스 감성 분석 한계</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>AI 오판 가능:</strong> 반어법, 맥락 이해 부족으로 잘못 분류될 수 있음</li>';
+  html += '<li><strong>시장 반응 불일치:</strong> 긍정 뉴스에도 주가 하락 가능 (이미 반영됨)</li>';
+  html += '<li><strong>과거 뉴스:</strong> 오래된 뉴스는 이미 주가에 반영되어 영향 없음</li>';
+  html += '<li><strong>루머 주의:</strong> 확인되지 않은 뉴스는 신뢰도 낮음</li>';
+  html += '<li><strong>언론사 편향:</strong> 특정 언론의 과장 보도 주의</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 중요 안내
+  html += '<div style="margin-top:15px; padding:10px; background:#fef3c7; border-radius:6px; border-left:4px solid #f59e0b;">';
+  html += '<p style="margin:0; font-size:0.85rem; color:#92400e; line-height:1.6;">';
+  html += '<strong>⚠️ 뉴스 활용 원칙:</strong><br>';
+  html += '• 감성 분석은 시장 심리를 파악하는 참고 자료일 뿐입니다<br>';
+  html += '• 뉴스 하나에 과도하게 반응하지 말고, 전체 흐름을 보세요<br>';
+  html += '• 중요 뉴스는 원문을 직접 확인하여 정확히 이해하세요<br>';
+  html += '• 뉴스 만으로 투자 결정하지 말고, 재무 지표도 함께 분석하세요';
+  html += '</p>';
+  html += '</div>';
+  
+  html += '</div>';
+  html += '</div>';
+  
   html += '</div>';
   container.innerHTML = html;
 }
 
+// 미국 뉴스 감성 가이드 토글 함수
+function toggleUsSentimentGuide() {
+  var content = document.getElementById('usSentimentGuideContent');
+  var toggle = document.getElementById('usSentimentGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
 
 // ==================== 미국 AI 포트폴리오 ====================
 var usAiPortfolioStocks = [];
@@ -9022,6 +9421,7 @@ function calculateUsOptimalWeights(stocks) {
   };
 }
 
+
 // 미국 포트폴리오 결과 표시
 function displayUsAiPortfolioResult(weights, totalAmount) {
   var container = document.getElementById('us-ai-portfolio-result');
@@ -9095,10 +9495,120 @@ function displayUsAiPortfolioResult(weights, totalAmount) {
   html += '</div>';
   html += '</div>';
   
+  // 접히는 설명 패널 추가
+  html += '<div style="margin-top:15px;">';
+  html += '<button onclick="toggleUsPortfolioGuide()" style="width:100%; padding:12px; background:#e0f2fe; border:1px solid #7dd3fc; border-radius:8px; cursor:pointer; font-weight:bold; text-align:left; display:flex; justify-content:space-between; align-items:center;">';
+  html += '<span>📖 포트폴리오 구성 가이드</span>';
+  html += '<span id="usPortfolioGuideToggle">▼</span>';
+  html += '</button>';
+  html += '<div id="usPortfolioGuideContent" style="display:none; padding:15px; background:#f0f9ff; border-radius:0 0 8px 8px; border:1px solid #7dd3fc; border-top:none; margin-top:-1px;">';
+  
+  // 분산투자 개념
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#3b82f6;">💼 포트폴리오 분산투자란?</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>개념:</strong> "Don\'t put all your eggs in one basket" → 여러 종목에 투자하여 리스크 분산</li>';
+  html += '<li><strong>원리:</strong> 한 종목이 하락해도 다른 종목이 상승하면 손실 완화</li>';
+  html += '<li><strong>효과:</strong> 개별 종목 리스크는 높아도 포트폴리오 전체는 안정적</li>';
+  html += '<li><strong>권장:</strong> 최소 5~10개 종목, 다양한 산업/섹터 조합</li>';
+  html += '<li><strong>주의:</strong> 과도한 분산(30개 이상)은 관리 어려움 + 수익률 희석</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 비중 계산 방식
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#7c3aed;">⚖️ 최적 비중 계산 방식</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>역변동성 가중:</strong> 변동성이 낮은 종목에 더 많은 비중 → 안정성 확보</li>';
+  html += '<li><strong>예시:</strong> 변동성 1% 종목은 30%, 변동성 3% 종목은 10% 배분</li>';
+  html += '<li><strong>기술점수 조정:</strong> RSI, MACD 등 기술적 지표가 좋은 종목에 가산점</li>';
+  html += '<li><strong>균형 유지:</strong> 한 종목이 40% 이상 차지하지 않도록 제한</li>';
+  html += '<li><strong>결과:</strong> 리스크는 낮추고, 수익 잠재력은 유지</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 상관관계
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#16a34a;">🔗 상관관계 (Correlation)</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>의미:</strong> 두 종목의 가격이 함께 움직이는 정도 (-1 ~ +1)</li>';
+  html += '<li><strong>높은 상관(+0.7~+1):</strong> 같이 오르고 내림 → 분산효과 낮음</li>';
+  html += '<li><strong>낮은 상관(-0.3~+0.3):</strong> 독립적 움직임 → 분산효과 높음</li>';
+  html += '<li><strong>역상관(-1~-0.7):</strong> 반대로 움직임 → 최고의 분산효과</li>';
+  html += '<li><strong>예시:</strong> Tech + Healthcare (낮은 상관), AAPL + MSFT (높은 상관)</li>';
+  html += '<li><strong>전략:</strong> 상관관계가 낮은 종목들을 조합하면 리스크 대폭 감소</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 리밸런싱
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#ea580c;">🔄 리밸런싱 (Rebalancing)</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>의미:</strong> 시간이 지나 비중이 변한 포트폴리오를 원래 비중으로 재조정</li>';
+  html += '<li><strong>필요성:</strong> AAPL 20% → 35% 상승 시, 리스크 과다 노출</li>';
+  html += '<li><strong>방법:</strong> 비중 높아진 종목 일부 매도 → 비중 낮아진 종목 매수</li>';
+  html += '<li><strong>주기:</strong> 분기별(3개월) 또는 반기별(6개월) 점검 권장</li>';
+  html += '<li><strong>기준:</strong> 초기 비중 대비 ±5%p 이상 차이 나면 조정</li>';
+  html += '<li><strong>효과:</strong> 고점 매도 + 저점 매수 효과, 리스크 일정하게 유지</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 포트폴리오 평가 지표
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#dc2626;">📊 포트폴리오 평가 지표</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>평균 변동성:</strong> 포트폴리오 전체의 가격 변동 정도 → 낮을수록 안정적</li>';
+  html += '<li><strong>평균 기술점수:</strong> 각 종목의 기술적 분석 점수 평균 → 높을수록 좋은 타이밍</li>';
+  html += '<li><strong>샤프 비율:</strong> (수익률 - 무위험수익률) ÷ 변동성 → 높을수록 효율적</li>';
+  html += '<li><strong>최대낙폭(MDD):</strong> 고점 대비 최대 하락률 → 낮을수록 안전</li>';
+  html += '<li><strong>목표:</strong> 변동성은 낮추고, 기술점수는 높이기</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 투자 전략
+  html += '<div style="padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#0891b2;">💡 포트폴리오 투자 전략</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>초기 구성:</strong> 추천 비중대로 분할 매수 (한번에 올인 금지)</li>';
+  html += '<li><strong>섹터 분산:</strong> Tech, Finance, Healthcare, Consumer 등 다양한 산업 포함</li>';
+  html += '<li><strong>대형주 + 중소형주:</strong> 대형주 60~70% (안정성) + 중소형주 30~40% (성장성)</li>';
+  html += '<li><strong>정기 점검:</strong> 월 1회 수익률 확인, 분기 1회 리밸런싱</li>';
+  html += '<li><strong>손절 기준:</strong> 개별 종목 -20% 또는 포트폴리오 전체 -15% 시 재검토</li>';
+  html += '<li><strong>장기 관점:</strong> 최소 6개월~1년 보유 전제, 단기 변동에 흔들리지 않기</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 중요 안내
+  html += '<div style="margin-top:15px; padding:10px; background:#fef3c7; border-radius:6px; border-left:4px solid #f59e0b;">';
+  html += '<p style="margin:0; font-size:0.85rem; color:#92400e; line-height:1.6;">';
+  html += '<strong>⚠️ 포트폴리오 투자 유의사항:</strong><br>';
+  html += '• AI 추천 비중은 과거 데이터 기반이며, 미래 수익을 보장하지 않습니다<br>';
+  html += '• 개인의 투자 성향, 목표 수익률, 위험 감수 능력에 따라 조정하세요<br>';
+  html += '• 추천 비중은 참고용이며, 시장 상황 변화 시 유연하게 대응하세요<br>';
+  html += '• 분산투자도 시장 전체 하락 시 손실을 막지는 못합니다';
+  html += '</p>';
+  html += '</div>';
+  
+  html += '</div>';
+  html += '</div>';
+  
   html += '</div>';
   container.innerHTML = html;
 }
 
+// 미국 포트폴리오 가이드 토글 함수
+function toggleUsPortfolioGuide() {
+  var content = document.getElementById('usPortfolioGuideContent');
+  var toggle = document.getElementById('usPortfolioGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
 
 
 // ==================== 알림 팝업 ====================
