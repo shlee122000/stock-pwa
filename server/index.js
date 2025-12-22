@@ -24,6 +24,7 @@ app.use(express.static(path.join(__dirname, '../public'), {
 const koreaRoutes = require('./routes/korea');
 const usRoutes = require('./routes/us');
 const analysisRoutes = require('./routes/analysis');
+const patternsRoutes = require('./routes/patterns');
 const usersRoutes = require('./api/users');
 const watchlistRoutes = require('./api/watchlist');
 const portfolioRoutes = require('./api/portfolio');
@@ -34,6 +35,7 @@ app.use('/api/analysis', analysisRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/watchlist', watchlistRoutes);
 app.use('/api/portfolio', portfolioRoutes);
+app.use('/api/patterns', patternsRoutes);
 
 
 // 기본 라우트 (SPA)

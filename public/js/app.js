@@ -782,6 +782,8 @@ function createTradingViewChart(containerId, data, isKorean, settings) {
       return null;
     }
     
+    window.currentChartData = data;
+    
     // 차트 생성
     var chart = LightweightCharts.createChart(container, {
       width: container.clientWidth,
@@ -9005,4 +9007,188 @@ function updateUserUI() {
     if (loginBtn) loginBtn.style.display = 'block';
     if (userInfo) userInfo.style.display = 'none';
   }
+}
+
+
+// ========================================
+// 차트 패턴 인식
+// ========================================
+if (document.getElementById('analyzePatternBtn')) {
+  document.getElementById('analyzePatternBtn').addEventListener('click', async function() {
+    console.log('🔍 패턴 분석 버튼 클릭됨');
+    
+    const stockCode = document.getElementById('analysis-stock-code').value.trim();
+    console.log('종목코드:', stockCode);
+    
+    if (!stockCode) {
+      alert('종목코드를 먼저 입력하고 분석을 실행해주세요.');
+      return;
+    }
+    
+    console.log('차트 데이터:', window.currentChartData);
+    
+    if (!window.currentChartData || window.currentChartData.length === 0) {
+      alert('먼저 "분석 시작" 버튼을 눌러 차트를 로드해주세요.');
+      return;
+    }
+    
+    try {
+      showLoading();
+      
+      const response = await fetch('/api/patterns/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          data: window.currentChartData,
+          patterns: ['doubleTop', 'doubleBottom']
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        displayPatternResults(result);
+      } else {
+        alert('패턴 분석 중 오류가 발생했습니다: ' + result.error);
+      }
+      
+    } catch (error) {
+      console.error('패턴 분석 오류:', error);
+      alert('패턴 분석 중 오류가 발생했습니다.');
+    } finally {
+      hideLoading();
+    }
+  });
+}
+
+function displayPatternResults(result) {
+  const resultsDiv = document.getElementById('patternResults');
+  const listDiv = document.getElementById('patternList');
+  
+  if (result.patterns.length === 0) {
+    listDiv.innerHTML = '<p style="color:#666;">발견된 패턴이 없습니다.</p>';
+    resultsDiv.style.display = 'block';
+    return;
+  }
+  
+  let html = '<div style="display:grid; gap:10px;">';
+  
+  result.patterns.forEach(function(pattern, index) {
+    const isDoubleTop = pattern.type === 'doubleTop';
+    const bgColor = isDoubleTop ? '#fee2e2' : '#dcfce7';
+    const iconColor = isDoubleTop ? '#dc2626' : '#16a34a';
+    const icon = isDoubleTop ? '📉' : '📈';
+    const title = isDoubleTop ? '더블탑 (매도 신호)' : '더블바텀 (매수 신호)';
+    
+    html += '<div style="padding:15px; background:' + bgColor + '; border-radius:8px; border-left:4px solid ' + iconColor + ';">';
+    html += '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">';
+    html += '<h4 style="margin:0; color:' + iconColor + ';">' + icon + ' ' + title + '</h4>';
+    html += '<span style="background:' + iconColor + '; color:white; padding:4px 8px; border-radius:4px; font-size:0.85rem; font-weight:bold;">신뢰도: ' + pattern.confidence + '점</span>';
+    html += '</div>';
+    html += '<div style="font-size:0.9rem; color:#333;">';
+    
+    if (isDoubleTop) {
+      html += '<p style="margin:5px 0;">📍 고점1: ' + pattern.peak1Price.toLocaleString() + '원</p>';
+      html += '<p style="margin:5px 0;">📍 저점: ' + pattern.valleyPrice.toLocaleString() + '원</p>';
+      html += '<p style="margin:5px 0;">📍 고점2: ' + pattern.peak2Price.toLocaleString() + '원</p>';
+      html += '<p style="margin:5px 0;">🎯 목표가: ' + pattern.targetPrice.toLocaleString() + '원</p>';
+    } else {
+      html += '<p style="margin:5px 0;">📍 저점1: ' + pattern.bottom1Price.toLocaleString() + '원</p>';
+      html += '<p style="margin:5px 0;">📍 고점: ' + pattern.peakPrice.toLocaleString() + '원</p>';
+      html += '<p style="margin:5px 0;">📍 저점2: ' + pattern.bottom2Price.toLocaleString() + '원</p>';
+      html += '<p style="margin:5px 0;">🎯 목표가: ' + pattern.targetPrice.toLocaleString() + '원</p>';
+    }
+    
+    html += '</div>';
+    html += '</div>';
+  });
+  
+  html += '</div>';
+  
+  // 접히는 설명 패널 추가
+  html += '<div style="margin-top:15px;">';
+  html += '<button onclick="togglePatternGuide()" style="width:100%; padding:12px; background:#e0f2fe; border:1px solid #7dd3fc; border-radius:8px; cursor:pointer; font-weight:bold; text-align:left; display:flex; justify-content:space-between; align-items:center;">';
+  html += '<span>📖 패턴 해석 가이드</span>';
+  html += '<span id="patternGuideToggle">▼</span>';
+  html += '</button>';
+  html += '<div id="patternGuideContent" style="display:none; padding:15px; background:#f0f9ff; border-radius:0 0 8px 8px; border:1px solid #7dd3fc; border-top:none; margin-top:-1px;">';
+  
+  // 더블탑 설명
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#dc2626;">📉 더블탑 (Double Top)</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>의미:</strong> 주가가 두 번 고점을 시도했으나 돌파 실패 → 상승 동력 약화</li>';
+  html += '<li><strong>신호:</strong> 매도 고려 (하락 반전 가능성)</li>';
+  html += '<li><strong>목표가 계산:</strong> 저점(네크라인) - 패턴 높이(고점-저점)</li>';
+  html += '<li><strong>예시:</strong> 고점 110,000원, 저점 90,000원 → 목표가 70,000원</li>';
+  html += '<li><strong>주의:</strong> 저점을 하향 돌파할 때 패턴 확정</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 더블바텀 설명
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#16a34a;">📈 더블바텀 (Double Bottom)</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>의미:</strong> 주가가 두 번 저점을 확인하고 반등 → 바닥 확인</li>';
+  html += '<li><strong>신호:</strong> 매수 고려 (상승 반전 가능성)</li>';
+  html += '<li><strong>목표가 계산:</strong> 고점(네크라인) + 패턴 높이(고점-저점)</li>';
+  html += '<li><strong>예시:</strong> 저점 50,000원, 고점 55,000원 → 목표가 60,000원</li>';
+  html += '<li><strong>주의:</strong> 고점을 상향 돌파할 때 패턴 확정</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 신뢰도 설명
+  html += '<div style="padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#3b82f6;">🎯 신뢰도 점수란?</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>70점 이상:</strong> 높음 - 패턴이 명확함</li>';
+  html += '<li><strong>50-70점:</strong> 보통 - 참고 가능</li>';
+  html += '<li><strong>50점 미만:</strong> 낮음 - 다른 지표와 함께 판단 필요</li>';
+  html += '<li><strong>계산 요소:</strong> 두 고점/저점의 가격 차이, 거리, 대칭성</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 중요 안내
+  html += '<div style="margin-top:15px; padding:10px; background:#fef3c7; border-radius:6px; border-left:4px solid #f59e0b;">';
+  html += '<p style="margin:0; font-size:0.85rem; color:#92400e; line-height:1.6;">';
+  html += '<strong>⚠️ 투자 유의사항:</strong><br>';
+  html += '• 패턴 분석은 참고 자료일 뿐, 확정된 미래 가격이 아닙니다<br>';
+  html += '• 거래량, RSI, MACD 등 다른 지표와 함께 종합적으로 판단하세요<br>';
+  html += '• 손절가를 반드시 설정하여 리스크를 관리하세요';
+  html += '</p>';
+  html += '</div>';
+  
+  html += '</div>';
+  html += '</div>';
+  
+  html += '<div style="margin-top:15px; padding:10px; background:#f8fafc; border-radius:8px; font-size:0.85rem; color:#64748b;">';
+  html += '<strong>📊 분석 요약:</strong> 더블탑 ' + result.summary.doubleTopCount + '개, 더블바텀 ' + result.summary.doubleBottomCount + '개 발견';
+  html += '</div>';
+  
+  listDiv.innerHTML = html;
+  resultsDiv.style.display = 'block';
+}
+
+// 패턴 가이드 토글 함수
+function togglePatternGuide() {
+  var content = document.getElementById('patternGuideContent');
+  var toggle = document.getElementById('patternGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
+
+// 인덱스에서 날짜 가져오기 (현재 차트 데이터 기준)
+function getDateFromIndex(index) {
+  if (window.currentChartData && window.currentChartData[index]) {
+    return window.currentChartData[index].time;
+  }
+  return '날짜 정보 없음';
 }
