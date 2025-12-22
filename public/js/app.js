@@ -7983,6 +7983,127 @@ function togglePortfolioGuide() {
   }
 }
 
+
+// RSI 가이드 토글 함수
+function toggleRsiGuide() {
+  var content = document.getElementById('rsiGuideContent');
+  var toggle = document.getElementById('rsiGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
+
+
+// MACD 가이드 토글 함수
+function toggleMacdGuide() {
+  var content = document.getElementById('macdGuideContent');
+  var toggle = document.getElementById('macdGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
+
+
+// 스토캐스틱 가이드 토글 함수
+function toggleStochasticGuide() {
+  var content = document.getElementById('stochasticGuideContent');
+  var toggle = document.getElementById('stochasticGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
+
+
+// ATR 가이드 토글 함수
+function toggleAtrGuide() {
+  var content = document.getElementById('atrGuideContent');
+  var toggle = document.getElementById('atrGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
+
+
+// 미국 RSI 가이드 토글 함수
+function toggleUsRsiGuide() {
+  var content = document.getElementById('usRsiGuideContent');
+  var toggle = document.getElementById('usRsiGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
+
+
+// 미국 MACD 가이드 토글 함수
+function toggleUsMacdGuide() {
+  var content = document.getElementById('usMacdGuideContent');
+  var toggle = document.getElementById('usMacdGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
+
+
+// 미국 스토캐스틱 가이드 토글 함수
+function toggleUsStochasticGuide() {
+  var content = document.getElementById('usStochasticGuideContent');
+  var toggle = document.getElementById('usStochasticGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
+
+
+// 미국 ATR 가이드 토글 함수
+function toggleUsAtrGuide() {
+  var content = document.getElementById('usAtrGuideContent');
+  var toggle = document.getElementById('usAtrGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
+
+
 // ==================== AI 뉴스 감성 분석 ====================
 async function analyzeAiSentiment() {
   var input = document.getElementById('ai-sentiment-input').value.trim();
