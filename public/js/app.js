@@ -143,7 +143,6 @@ function changeTimeframe(timeframe) {
 // 미국 주식 현재 선택된 시간대
 var currentUsTimeframe = 'daily';
 
-// 미국 주식 시간대 변경 함수
 function changeUsTimeframe(timeframe) {
   currentUsTimeframe = timeframe;
   
@@ -767,7 +766,7 @@ function calculateATR(data, period) {
 
 
 // ==================== TradingView 차트 ====================
-function createTradingViewChart(containerId, data, isKorean, settings) {
+function createTradingViewChart(containerId, data, isKorean, settings, timeframe) {
   try {
     // 지표 설정 (기본값: indicatorSettings)
     var indicatorOpts = settings || indicatorSettings;  
@@ -785,10 +784,18 @@ function createTradingViewChart(containerId, data, isKorean, settings) {
     window.currentChartData = data;
     
     // 차트 생성
-    var chart = LightweightCharts.createChart(container, {
-      width: container.clientWidth,
-      height: 350,
-      layout: {
+    // 시간대별 캔들 간격 설정
+    var barSpacing = 12;  // 기본값 (일봉)
+    if (timeframe === 'weekly') {
+      barSpacing = 10;  // 주봉
+    } else if (timeframe === 'monthly') {
+      barSpacing = 4;  // 월봉 (6 → 4로 조정, 캔들 간격 더 좁게)
+    }
+
+      var chart = LightweightCharts.createChart(container, {
+        width: container.clientWidth,
+        height: 350,
+        layout: {
         background: { color: '#ffffff' },
         textColor: '#333'
       },
@@ -805,7 +812,8 @@ function createTradingViewChart(containerId, data, isKorean, settings) {
       timeScale: {
         borderColor: '#cccccc',
         timeVisible: true,
-        secondsVisible: false
+        secondsVisible: false,
+        barSpacing: barSpacing  // 추가!
       }
     });
     
@@ -1895,10 +1903,10 @@ async function drawStockChart(stockCode) {
     
     // 시간대에 따라 데이터 개수 조정
     var dataCount = 200;
-    if (currentTimeframe === 'weekly') {
-      dataCount = 1000;  // 주봉은 더 많은 데이터 필요
-    } else if (currentTimeframe === 'monthly') {
-      dataCount = 1500;  // 월봉은 더 많은 데이터 필요
+    if (currentUsTimeframe === 'weekly') {
+      dataCount = 2000;
+    } else if (currentUsTimeframe === 'monthly') {
+      dataCount = 5000;  // 3000 → 5000으로 증가
     }
 
     var rawData = result.data.slice(-dataCount);
@@ -1967,7 +1975,15 @@ async function drawStockChart(stockCode) {
     }
     
     // TradingView 차트 생성
-    tvStockChart = createTradingViewChart('stock-chart', chartData, true, indicatorSettings);
+    console.log('=== drawUsStockChart 차트 생성 직전 ===');
+    console.log('chartData.length:', chartData.length);
+    console.log('currentUsTimeframe:', currentUsTimeframe);
+    console.log('차트 생성 시작!');
+
+    // TradingView 차트 생성
+    tvUsStockChart = createTradingViewChart('us-stock-chart', chartData, false, usIndicatorSettings, currentUsTimeframe);
+
+    console.log('차트 생성 완료!');
     
     // RSI 차트 생성
     createRSIChart('rsi-chart', formattedData);
@@ -2480,6 +2496,11 @@ async function drawUsStockChart(symbol) {
       return;
     }
     
+    if (!result.success || !result.data || result.data.length === 0) {
+      document.getElementById('us-chart-card').style.display = 'none';
+      return;
+    }
+    
     document.getElementById('us-chart-card').style.display = 'block';
     
     // 시간대에 따라 데이터 개수 조정
@@ -2491,13 +2512,14 @@ async function drawUsStockChart(symbol) {
     }
 
     var rawData = result.data.slice(-dataCount);
-
+    
     // 주봉/월봉 변환
     if (currentUsTimeframe === 'weekly') {
       rawData = convertToWeekly(rawData);
     } else if (currentUsTimeframe === 'monthly') {
       rawData = convertToMonthly(rawData);
     }
+
 
     // 날짜 형식 변환 (RSI/MACD 등에 전달할 데이터)
     var formattedData = rawData.map(function(item) {
@@ -2519,6 +2541,7 @@ async function drawUsStockChart(symbol) {
         volume: item.volume || 0
       };
     });
+
     
     // 날짜 형식 변환
     var chartData = rawData.map(function(item) {
@@ -2540,6 +2563,7 @@ async function drawUsStockChart(symbol) {
         volume: item.volume || 0
       };
     });
+
     
     // 기존 Chart.js 차트 제거
     if (usStockChart) {
@@ -2549,13 +2573,17 @@ async function drawUsStockChart(symbol) {
     
     // 기존 TradingView 차트 제거
     if (tvUsStockChart) {
-      tvUsStockChart.remove();
+      try {
+        tvUsStockChart.remove();
+      } catch (e) {
+        console.log('차트 제거 중 에러 (무시):', e.message);
+      }
       tvUsStockChart = null;
     }
-    
+
     // TradingView 차트 생성
-    tvUsStockChart = createTradingViewChart('us-stock-chart', chartData, false, usIndicatorSettings);
-    
+    tvUsStockChart = createTradingViewChart('us-stock-chart', chartData, false, usIndicatorSettings, currentUsTimeframe);
+
     // RSI 카드 표시 및 차트 생성
     // 보조 지표 선택 카드 표시
     document.getElementById('us-sub-indicator-card').style.display = 'block';
