@@ -30,7 +30,10 @@ router.post('/analyze', async (req, res) => {
     const allPatterns = [
       ...(results.doubleTop || []),
       ...(results.doubleBottom || [])
-    ].sort((a, b) => b.confidence - a.confidence);
+    ]
+    .sort((a, b) => b.confidence - a.confidence)
+    .filter(pattern => pattern.confidence >= 70)  // 신뢰도 70점 이상만
+    .slice(0, 5);  // 상위 5개만
 
     res.json({
       success: true,

@@ -2565,6 +2565,8 @@ async function drawUsStockChart(symbol) {
     });
 
     
+    
+    window.currentUsChartData = formattedData;
     // 기존 Chart.js 차트 제거
     if (usStockChart) {
       usStockChart.destroy();
@@ -10094,6 +10096,61 @@ if (document.getElementById('analyzePatternBtn')) {
   });
 }
 
+
+// ========================================
+// 미국 차트 패턴 인식
+// ========================================
+if (document.getElementById('analyzeUsPatternBtn')) {
+  document.getElementById('analyzeUsPatternBtn').addEventListener('click', async function() {
+    console.log('🔍 미국 패턴 분석 버튼 클릭됨');
+    
+    const stockSymbol = document.getElementById('us-stock-input').value.trim();
+    console.log('종목 심볼:', stockSymbol);
+    
+    if (!stockSymbol) {
+      alert('종목 심볼을 먼저 입력하고 분석을 실행해주세요.');
+      return;
+    }
+    
+    console.log('미국 차트 데이터:', window.currentUsChartData);
+    
+    if (!window.currentUsChartData || window.currentUsChartData.length === 0) {
+      alert('먼저 종목을 검색하여 차트를 로드해주세요.');
+      return;
+    }
+    
+    try {
+      showLoading();
+      
+      const response = await fetch('/api/patterns/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          data: window.currentUsChartData,
+          patterns: ['doubleTop', 'doubleBottom']
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        displayUsPatternResults(result);
+      } else {
+        alert('패턴 분석 중 오류가 발생했습니다: ' + result.error);
+      }
+      
+    } catch (error) {
+      console.error('미국 패턴 분석 오류:', error);
+      alert('패턴 분석 중 오류가 발생했습니다.');
+    } finally {
+      hideLoading();
+    }
+  });
+}
+
+
 function displayPatternResults(result) {
   const resultsDiv = document.getElementById('patternResults');
   const listDiv = document.getElementById('patternList');
@@ -10202,6 +10259,147 @@ function displayPatternResults(result) {
   resultsDiv.style.display = 'block';
 }
 
+
+function displayUsPatternResults(result) {
+  const resultsDiv = document.getElementById('usPatternResults');
+  const listDiv = document.getElementById('usPatternList');
+  
+  if (result.patterns.length === 0) {
+    listDiv.innerHTML = '<p style="color:#666;">발견된 패턴이 없습니다.</p>';
+    resultsDiv.style.display = 'block';
+    return;
+  }
+  
+  const displayCount = 3;  // 기본 3개만 표시
+  const hasMore = result.patterns.length > displayCount;  // 더 있는지 확인
+  
+  let html = '<div id="usPatternContainer" style="display:grid; gap:10px;">';
+  
+  result.patterns.forEach(function(pattern, index) {
+    // 처음 3개는 항상 표시, 나머지는 숨김
+    const isHidden = index >= displayCount;
+    const hiddenClass = isHidden ? ' us-extra-pattern' : '';
+    const hiddenStyle = isHidden ? 'display:none;' : '';
+    
+    const isDoubleTop = pattern.type === 'doubleTop';
+    const bgColor = isDoubleTop ? '#fee2e2' : '#dcfce7';
+    const iconColor = isDoubleTop ? '#dc2626' : '#16a34a';
+    const icon = isDoubleTop ? '📉' : '📈';
+    const title = isDoubleTop ? '더블탑 (매도 신호)' : '더블바텀 (매수 신호)';
+    
+    html += '<div class="us-pattern-item' + hiddenClass + '" style="' + hiddenStyle + 'padding:15px; background:' + bgColor + '; border-radius:8px; border-left:4px solid ' + iconColor + ';">';
+    html += '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">';
+    html += '<h4 style="margin:0; color:' + iconColor + ';">' + icon + ' ' + title + '</h4>';
+    html += '<span style="background:' + iconColor + '; color:white; padding:4px 8px; border-radius:4px; font-size:0.85rem; font-weight:bold;">신뢰도: ' + pattern.confidence + '점</span>';
+    html += '</div>';
+    html += '<div style="font-size:0.9rem; color:#333;">';
+    
+    if (isDoubleTop) {
+      html += '<p style="margin:5px 0;">📍 고점1: $' + pattern.peak1Price.toFixed(2) + '</p>';
+      html += '<p style="margin:5px 0;">📍 저점: $' + pattern.valleyPrice.toFixed(2) + '</p>';
+      html += '<p style="margin:5px 0;">📍 고점2: $' + pattern.peak2Price.toFixed(2) + '</p>';
+      html += '<p style="margin:5px 0;">🎯 목표가: $' + pattern.targetPrice.toFixed(2) + '</p>';
+    } else {
+      html += '<p style="margin:5px 0;">📍 저점1: $' + pattern.bottom1Price.toFixed(2) + '</p>';
+      html += '<p style="margin:5px 0;">📍 고점: $' + pattern.peakPrice.toFixed(2) + '</p>';
+      html += '<p style="margin:5px 0;">📍 저점2: $' + pattern.bottom2Price.toFixed(2) + '</p>';
+      html += '<p style="margin:5px 0;">🎯 목표가: $' + pattern.targetPrice.toFixed(2) + '</p>';
+    }
+    
+    html += '</div>';
+    html += '</div>';
+  });
+  
+  html += '</div>';
+  
+  // 더 보기 버튼 (패턴이 3개 초과일 때만)
+  if (hasMore) {
+    html += '<div style="margin-top:10px; text-align:center;">';
+    html += '<button id="usToggleMoreBtn" onclick="toggleUsMorePatterns()" style="padding:10px 20px; background:#6366f1; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold;">';
+    html += '더 보기 (' + (result.patterns.length - displayCount) + '개) ▼';
+    html += '</button>';
+    html += '</div>';
+  }
+  
+  // 접히는 설명 패널 추가
+  html += '<div style="margin-top:15px;">';
+  html += '<button onclick="toggleUsPatternGuide()" style="width:100%; padding:12px; background:#e0f2fe; border:1px solid #7dd3fc; border-radius:8px; cursor:pointer; font-weight:bold; text-align:left; display:flex; justify-content:space-between; align-items:center;">';
+  html += '<span>📖 패턴 해석 가이드</span>';
+  html += '<span id="usPatternGuideToggle">▼</span>';
+  html += '</button>';
+  html += '<div id="usPatternGuideContent" style="display:none; padding:15px; background:#f0f9ff; border-radius:0 0 8px 8px; border:1px solid #7dd3fc; border-top:none; margin-top:-1px;">';
+  
+  // 더블탑 설명
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#dc2626;">📉 더블탑 (Double Top)</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>의미:</strong> 주가가 두 번 고점을 시도했으나 돌파 실패 → 상승 동력 약화</li>';
+  html += '<li><strong>신호:</strong> 매도 고려 (하락 반전 가능성)</li>';
+  html += '<li><strong>목표가 계산:</strong> 저점(네크라인) - 패턴 높이(고점-저점)</li>';
+  html += '<li><strong>예시:</strong> 고점 $110.00, 저점 $90.00 → 목표가 $70.00</li>';
+  html += '<li><strong>주의:</strong> 저점을 하향 돌파할 때 패턴 확정</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 더블바텀 설명
+  html += '<div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#16a34a;">📈 더블바텀 (Double Bottom)</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>의미:</strong> 주가가 두 번 저점을 확인하고 반등 → 바닥 확인</li>';
+  html += '<li><strong>신호:</strong> 매수 고려 (상승 반전 가능성)</li>';
+  html += '<li><strong>목표가 계산:</strong> 고점(네크라인) + 패턴 높이(고점-저점)</li>';
+  html += '<li><strong>예시:</strong> 저점 $50.00, 고점 $55.00 → 목표가 $60.00</li>';
+  html += '<li><strong>주의:</strong> 고점을 상향 돌파할 때 패턴 확정</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 신뢰도 설명
+  html += '<div style="padding:10px; background:white; border-radius:6px;">';
+  html += '<h4 style="margin:0 0 10px 0; color:#3b82f6;">🎯 신뢰도 점수란?</h4>';
+  html += '<ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">';
+  html += '<li><strong>70점 이상:</strong> 높음 - 패턴이 명확함</li>';
+  html += '<li><strong>50-70점:</strong> 보통 - 참고 가능</li>';
+  html += '<li><strong>50점 미만:</strong> 낮음 - 다른 지표와 함께 판단 필요</li>';
+  html += '<li><strong>계산 요소:</strong> 두 고점/저점의 가격 차이, 거리, 대칭성</li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // 중요 안내
+  html += '<div style="margin-top:15px; padding:10px; background:#fef3c7; border-radius:6px; border-left:4px solid #f59e0b;">';
+  html += '<p style="margin:0; font-size:0.85rem; color:#92400e; line-height:1.6;">';
+  html += '<strong>⚠️ 투자 유의사항:</strong><br>';
+  html += '• 패턴 분석은 참고 자료일 뿐, 확정된 미래 가격이 아닙니다<br>';
+  html += '• 거래량, RSI, MACD 등 다른 지표와 함께 종합적으로 판단하세요<br>';
+  html += '• 손절가를 반드시 설정하여 리스크를 관리하세요';
+  html += '</p>';
+  html += '</div>';
+  
+  html += '</div>';
+  html += '</div>';
+  
+  html += '<div style="margin-top:15px; padding:10px; background:#f8fafc; border-radius:8px; font-size:0.85rem; color:#64748b;">';
+  html += '<strong>📊 분석 요약:</strong> 더블탑 ' + result.summary.doubleTopCount + '개, 더블바텀 ' + result.summary.doubleBottomCount + '개 발견';
+  html += '</div>';
+  
+  listDiv.innerHTML = html;
+  resultsDiv.style.display = 'block';
+}
+
+
+// 미국 패턴 더 보기 토글
+function toggleUsMorePatterns() {
+  var extraPatterns = document.querySelectorAll('.us-extra-pattern');
+  var btn = document.getElementById('usToggleMoreBtn');
+  var isHidden = extraPatterns[0].style.display === 'none' || extraPatterns[0].style.display === '';
+  
+  extraPatterns.forEach(function(pattern) {
+    pattern.style.display = isHidden ? 'block' : 'none';
+  });
+  
+  btn.textContent = isHidden ? '접기 ▲' : '더 보기 (' + extraPatterns.length + '개) ▼';
+}
+
+
 // 패턴 가이드 토글 함수
 function togglePatternGuide() {
   var content = document.getElementById('patternGuideContent');
@@ -10215,6 +10413,143 @@ function togglePatternGuide() {
     toggle.textContent = '▼';
   }
 }
+
+
+// RSI 가이드 토글 함수
+function toggleRsiGuide() {
+  var content = document.getElementById('rsiGuideContent');
+  var toggle = document.getElementById('rsiGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
+
+
+// 미국 RSI 가이드 토글 함수
+function toggleUsRsiGuide() {
+  var content = document.getElementById('usRsiGuideContent');
+  var toggle = document.getElementById('usRsiGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
+
+
+// MACD 가이드 토글 함수
+function toggleMacdGuide() {
+  var content = document.getElementById('macdGuideContent');
+  var toggle = document.getElementById('macdGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
+
+
+// 미국 MACD 가이드 토글 함수
+function toggleUsMacdGuide() {
+  var content = document.getElementById('usMacdGuideContent');
+  var toggle = document.getElementById('usMacdGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
+
+
+// 스토캐스틱 가이드 토글 함수
+function toggleStochasticGuide() {
+  var content = document.getElementById('stochasticGuideContent');
+  var toggle = document.getElementById('stochasticGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
+
+
+// 미국 스토캐스틱 가이드 토글 함수
+function toggleUsStochasticGuide() {
+  var content = document.getElementById('usStochasticGuideContent');
+  var toggle = document.getElementById('usStochasticGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
+
+
+// ATR 가이드 토글 함수
+function toggleAtrGuide() {
+  var content = document.getElementById('atrGuideContent');
+  var toggle = document.getElementById('atrGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
+
+
+// 미국 ATR 가이드 토글 함수
+function toggleUsAtrGuide() {
+  var content = document.getElementById('usAtrGuideContent');
+  var toggle = document.getElementById('usAtrGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
+
+
+// 미국 패턴 가이드 토글 함수
+function toggleUsPatternGuide() {
+  var content = document.getElementById('usPatternGuideContent');
+  var toggle = document.getElementById('usPatternGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
+
+
 
 // 인덱스에서 날짜 가져오기 (현재 차트 데이터 기준)
 function getDateFromIndex(index) {
