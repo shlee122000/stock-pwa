@@ -324,6 +324,148 @@ function convertToMonthly(dailyData) {
 }
 
 
+// ==================== 차트 패턴 인식 ====================
+// 한국 주식 패턴 분석
+async function handleKoreaPatternAnalysis() {
+  try {
+    // 현재 차트 데이터 확인
+    if (!window.currentChartData || window.currentChartData.length === 0) {
+      alert('먼저 종목을 분석하여 차트를 표시하세요.');
+      return;
+    }
+    
+    var patternBtn = document.getElementById('analyzePatternBtn');
+    var patternResults = document.getElementById('patternResults');
+    var patternList = document.getElementById('patternList');
+    
+    // 버튼 비활성화
+    patternBtn.disabled = true;
+    patternBtn.textContent = '🔍 분석 중...';
+    
+    // API 호출
+    var result = await apiCall('/api/patterns/analyze', {
+      method: 'POST',
+      body: JSON.stringify({
+        data: window.currentChartData,
+        patterns: ['doubleTop', 'doubleBottom']
+      })
+    }, false);
+    
+    if (result.success && result.patterns && result.patterns.length > 0) {
+      // 결과 표시
+      displayPatternResults(result.patterns, patternList);
+      patternResults.style.display = 'block';
+    } else {
+      patternList.innerHTML = '<p style="color:#666;">신뢰도 55점 이상의 패턴이 발견되지 않았습니다.</p>';
+      patternResults.style.display = 'block';
+    }
+    
+  } catch (error) {
+    console.error('패턴 분석 오류:', error);
+    alert('패턴 분석 중 오류가 발생했습니다.');
+  } finally {
+    // 버튼 다시 활성화
+    var patternBtn = document.getElementById('analyzePatternBtn');
+    patternBtn.disabled = false;
+    patternBtn.textContent = '🔍 패턴 분석 시작';
+  }
+}
+
+// 미국 주식 패턴 분석
+async function handleUsPatternAnalysis() {
+  try {
+    // 현재 차트 데이터 확인
+    if (!window.currentChartData || window.currentChartData.length === 0) {
+      alert('먼저 종목을 검색하여 차트를 표시하세요.');
+      return;
+    }
+    
+    var patternBtn = document.getElementById('analyzeUsPatternBtn');
+    var patternResults = document.getElementById('usPatternResults');
+    var patternList = document.getElementById('usPatternList');
+    
+    // 버튼 비활성화
+    patternBtn.disabled = true;
+    patternBtn.textContent = '🔍 분석 중...';
+    
+    // API 호출
+    var result = await apiCall('/api/patterns/analyze', {
+      method: 'POST',
+      body: JSON.stringify({
+        data: window.currentChartData,
+        patterns: ['doubleTop', 'doubleBottom']
+      })
+    }, false);
+    
+    if (result.success && result.patterns && result.patterns.length > 0) {
+      // 결과 표시
+      displayPatternResults(result.patterns, patternList);
+      patternResults.style.display = 'block';
+    } else {
+      patternList.innerHTML = '<p style="color:#666;">신뢰도 70점 이상의 패턴이 발견되지 않았습니다.</p>';
+      patternResults.style.display = 'block';
+    }
+    
+  } catch (error) {
+    console.error('미국 패턴 분석 오류:', error);
+    alert('패턴 분석 중 오류가 발생했습니다.');
+  } finally {
+    // 버튼 다시 활성화
+    var patternBtn = document.getElementById('analyzeUsPatternBtn');
+    patternBtn.disabled = false;
+    patternBtn.textContent = '🔍 패턴 분석 시작';
+  }
+}
+
+// 패턴 결과 표시
+function displayPatternResults(patterns, container) {
+  // 안전장치 추가
+  if (!patterns || !Array.isArray(patterns) || patterns.length === 0) {
+    container.innerHTML = '<p style="color:#666;">패턴 데이터를 표시할 수 없습니다.</p>';
+    return;
+  }
+  
+  var html = '';
+  
+  patterns.forEach(function(pattern) {
+    var patternName = pattern.type === 'doubleTop' ? '더블탑 (Double Top)' : '더블바텀 (Double Bottom)';
+    var patternIcon = pattern.type === 'doubleTop' ? '📉' : '📈';
+    var patternColor = pattern.type === 'doubleTop' ? '#ef4444' : '#10b981';
+    
+    html += '<div style="margin-bottom: 15px; padding: 15px; border: 2px solid ' + patternColor + '; border-radius: 8px; background: white;">';
+    html += '<h4 style="margin: 0 0 10px 0; color: ' + patternColor + ';">' + patternIcon + ' ' + patternName + '</h4>';
+    
+    html += '<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px;">';
+    html += '<div><strong>신뢰도:</strong> ' + pattern.confidence + '점</div>';
+    html += '<div><strong>목표가:</strong> ' + pattern.targetPrice.toLocaleString() + '원</div>';
+    
+    if (pattern.type === 'doubleTop') {
+      html += '<div><strong>고점1:</strong> ' + pattern.peak1Price.toLocaleString() + '원</div>';
+      html += '<div><strong>고점2:</strong> ' + pattern.peak2Price.toLocaleString() + '원</div>';
+      html += '<div><strong>중간 저점:</strong> ' + pattern.valleyPrice.toLocaleString() + '원</div>';
+    } else {
+      html += '<div><strong>저점1:</strong> ' + pattern.bottom1Price.toLocaleString() + '원</div>';
+      html += '<div><strong>저점2:</strong> ' + pattern.bottom2Price.toLocaleString() + '원</div>';
+      html += '<div><strong>중간 고점:</strong> ' + pattern.peakPrice.toLocaleString() + '원</div>';
+    }
+    
+    html += '</div>';
+    
+    html += '<p style="margin: 10px 0 0 0; padding: 10px; background: #f0f9ff; border-radius: 4px; font-size: 0.9rem;">';
+    if (pattern.type === 'doubleTop') {
+      html += '💡 <strong>해석:</strong> 상승 후 두 번의 고점을 형성하고 하락하는 패턴입니다. 매도 신호로 해석됩니다.';
+    } else {
+      html += '💡 <strong>해석:</strong> 하락 후 두 번의 저점을 형성하고 상승하는 패턴입니다. 매수 신호로 해석됩니다.';
+    }
+    html += '</p>';
+    
+    html += '</div>';
+  });
+  
+  container.innerHTML = html;
+}
+
+
 // ==================== 분석 메모 ====================
 // 메모 저장
 function saveMemo(stockCode) {
@@ -1005,6 +1147,7 @@ function createTradingViewChart(containerId, data, isKorean, settings, timeframe
     });
     resizeObserver.observe(container);
     
+    chart.candleSeries = candlestickSeries;  // ✅ 올바른 변수명  // 마커 적용을 위해 series 저장
     return chart;
     
   } catch (error) {
@@ -1558,6 +1701,19 @@ function initEventListeners() {
   document.getElementById('us-delete-memo-btn').addEventListener('click', function() {
     deleteUsMemo();
   });
+
+  // ===== 차트 패턴 분석 (한국 주식) =====
+  var analyzePatternBtn = document.getElementById('analyzePatternBtn');
+  if (analyzePatternBtn) {
+    analyzePatternBtn.addEventListener('click', handleKoreaPatternAnalysis);
+  }
+
+  // ===== 차트 패턴 분석 (미국 주식) =====
+  var analyzeUsPatternBtn = document.getElementById('analyzeUsPatternBtn');
+  if (analyzeUsPatternBtn) {
+    analyzeUsPatternBtn.addEventListener('click', handleUsPatternAnalysis);
+  }
+
 }
 
 
@@ -1903,10 +2059,10 @@ async function drawStockChart(stockCode) {
     
     // 시간대에 따라 데이터 개수 조정
     var dataCount = 200;
-    if (currentUsTimeframe === 'weekly') {
+    if (currentTimeframe === 'weekly') {
       dataCount = 2000;
-    } else if (currentUsTimeframe === 'monthly') {
-      dataCount = 5000;  // 3000 → 5000으로 증가
+    } else if (currentTimeframe === 'monthly') {
+      dataCount = 5000;
     }
 
     var rawData = result.data.slice(-dataCount);
@@ -1974,14 +2130,8 @@ async function drawStockChart(stockCode) {
       tvStockChart = null;
     }
     
-    // TradingView 차트 생성
-    console.log('=== drawUsStockChart 차트 생성 직전 ===');
-    console.log('chartData.length:', chartData.length);
-    console.log('currentUsTimeframe:', currentUsTimeframe);
-    console.log('차트 생성 시작!');
-
-    // TradingView 차트 생성
-    tvUsStockChart = createTradingViewChart('us-stock-chart', chartData, false, usIndicatorSettings, currentUsTimeframe);
+    // TradingView 차트 생성 (한국 주식)
+    tvStockChart = createTradingViewChart('stock-chart', chartData, true, indicatorSettings, currentTimeframe);
 
     console.log('차트 생성 완료!');
     
@@ -2541,6 +2691,8 @@ async function drawUsStockChart(symbol) {
         volume: item.volume || 0
       };
     });
+
+    window.currentChartData = chartData;  // 전역 변수에 저장
 
     
     // 날짜 형식 변환
@@ -8014,6 +8166,36 @@ function togglePortfolioGuide() {
 }
 
 
+// ==================== 차트 패턴 가이드 토글 ====================
+// 한국 주식 패턴 가이드
+function togglePatternGuide() {
+  var content = document.getElementById('patternGuideContent');
+  var toggle = document.getElementById('patternGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
+
+// 미국 주식 패턴 가이드
+function toggleUsPatternGuide() {
+  var content = document.getElementById('usPatternGuideContent');
+  var toggle = document.getElementById('usPatternGuideToggle');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    toggle.textContent = '▲';
+  } else {
+    content.style.display = 'none';
+    toggle.textContent = '▼';
+  }
+}
+
+
 // RSI 가이드 토글 함수
 function toggleRsiGuide() {
   var content = document.getElementById('rsiGuideContent');
@@ -8895,6 +9077,8 @@ function toggleUsRiskGuide() {
 
 // ==================== 미국 AI 차트 패턴 ====================
 async function analyzeUsAiPattern() {
+  console.log('🔵🔵🔵 9078줄 함수 실행됨!!! 🔵🔵🔵');
+  console.trace('호출 위치 추적');
   var input = document.getElementById('us-ai-input').value.trim().toUpperCase();
   
   if (!input) {
@@ -10081,10 +10265,15 @@ if (document.getElementById('analyzePatternBtn')) {
       
       const result = await response.json();
       
-      if (result.success) {
-        displayPatternResults(result);
+      if (result.success && result.patterns && result.patterns.length > 0) {
+        displayPatternResults(result.patterns, result.summary);
+        document.getElementById('patternResults').style.display = 'block';
       } else {
-        alert('패턴 분석 중 오류가 발생했습니다: ' + result.error);
+        var patternList = document.getElementById('patternList');
+        if (patternList) {
+          patternList.innerHTML = '<p style="color:#666;">신뢰도 55점 이상의 패턴이 발견되지 않았습니다.</p>';
+        }
+        document.getElementById('patternResults').style.display = 'block';
       }
       
     } catch (error) {
@@ -10151,11 +10340,11 @@ if (document.getElementById('analyzeUsPatternBtn')) {
 }
 
 
-function displayPatternResults(result) {
+function displayPatternResults(patterns, summary) {
   const resultsDiv = document.getElementById('patternResults');
   const listDiv = document.getElementById('patternList');
   
-  if (result.patterns.length === 0) {
+  if (patterns.length === 0) {
     listDiv.innerHTML = '<p style="color:#666;">발견된 패턴이 없습니다.</p>';
     resultsDiv.style.display = 'block';
     return;
@@ -10163,7 +10352,7 @@ function displayPatternResults(result) {
   
   let html = '<div style="display:grid; gap:10px;">';
   
-  result.patterns.forEach(function(pattern, index) {
+  patterns.forEach(function(pattern, index) {
     const isDoubleTop = pattern.type === 'doubleTop';
     const bgColor = isDoubleTop ? '#fee2e2' : '#dcfce7';
     const iconColor = isDoubleTop ? '#dc2626' : '#16a34a';
@@ -10252,11 +10441,53 @@ function displayPatternResults(result) {
   html += '</div>';
   
   html += '<div style="margin-top:15px; padding:10px; background:#f8fafc; border-radius:8px; font-size:0.85rem; color:#64748b;">';
-  html += '<strong>📊 분석 요약:</strong> 더블탑 ' + result.summary.doubleTopCount + '개, 더블바텀 ' + result.summary.doubleBottomCount + '개 발견';
+  html += '<strong>📊 분석 요약:</strong> 더블탑 ' + (summary && summary.doubleTopCount || 0) + '개, 더블바텀 ' + (summary && summary.doubleBottomCount || 0) + '개 발견';
   html += '</div>';
   
   listDiv.innerHTML = html;
   resultsDiv.style.display = 'block';
+  
+  // 차트 마커 추가
+  addPatternMarkers(patterns);
+}
+
+
+// 차트에 패턴 마커 추가
+function addPatternMarkers(patterns) {
+  // 한국 차트 또는 미국 차트 확인
+  var chart = window.tvStockChart || window.tvUsStockChart;
+  
+  if (!chart || !chart.candleSeries) {
+    console.log('차트를 찾을 수 없습니다');
+    return;
+  }
+  
+  var markers = [];
+  
+  patterns.forEach(function(pattern) {
+    var color = pattern.type === 'doubleTop' ? '#ef4444' : '#3b82f6';
+    var shape = pattern.type === 'doubleTop' ? 'arrowDown' : 'arrowUp';
+    
+    // 첫 번째 고점/저점
+    markers.push({
+      time: window.currentChartData[pattern.startIndex].time,
+      position: pattern.type === 'doubleTop' ? 'aboveBar' : 'belowBar',
+      color: color,
+      shape: shape,
+      text: pattern.type === 'doubleTop' ? '더블탑' : '더블바텀'
+    });
+    
+    // 두 번째 고점/저점
+    markers.push({
+      time: window.currentChartData[pattern.endIndex].time,
+      position: pattern.type === 'doubleTop' ? 'aboveBar' : 'belowBar',
+      color: color,
+      shape: shape,
+      text: ''
+    });
+  });
+  
+  chart.candleSeries.setMarkers(markers);
 }
 
 

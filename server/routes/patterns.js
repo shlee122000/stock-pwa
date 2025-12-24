@@ -32,7 +32,7 @@ router.post('/analyze', async (req, res) => {
       ...(results.doubleBottom || [])
     ]
     .sort((a, b) => b.confidence - a.confidence)
-    .filter(pattern => pattern.confidence >= 70)  // 신뢰도 70점 이상만
+    .filter(pattern => pattern.confidence >= 55)  // 신뢰도 55점 이상만
     .slice(0, 5);  // 상위 5개만
 
     res.json({

@@ -232,6 +232,200 @@
           </div>
         </div>
 
+
+        <!-- 미국 주식 차트 패턴 인식 가이드 -->
+<div style="margin-top:15px;">
+  <button onclick="toggleUsPatternGuide()" style="width:100%; padding:12px; background:#e0f2fe; border:1px solid #7dd3fc; border-radius:8px; cursor:pointer; font-weight:bold; text-align:left; display:flex; justify-content:space-between; align-items:center;">
+    <span>📖 차트 패턴 인식 가이드</span>
+    <span id="usPatternGuideToggle">▼</span>
+  </button>
+  <div id="usPatternGuideContent" style="display:none; padding:15px; background:#f0f9ff; border-radius:0 0 8px 8px; border:1px solid #7dd3fc; border-top:none; margin-top:-1px;">
+    
+    <div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">
+      <h4 style="margin:0 0 10px 0; color:#3b82f6;">📊 차트 패턴 인식이란?</h4>
+      <ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">
+        <li><strong>의미:</strong> 과거 주가 흐름에서 반복되는 가격 패턴을 찾아내는 기술</li>
+        <li><strong>목적:</strong> 패턴이 완성되면 이후 주가 방향을 예측</li>
+        <li><strong>현재 지원:</strong> 더블탑(하락 신호), 더블바텀(상승 신호)</li>
+        <li><strong>신뢰도:</strong> 60~100점 (높을수록 패턴이 명확함)</li>
+      </ul>
+    </div>
+    
+    <div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">
+      <h4 style="margin:0 0 10px 0; color:#ef4444;">📉 더블탑 (Double Top)</h4>
+      <ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">
+        <li><strong>모양:</strong> M자 형태 (두 번의 비슷한 고점)</li>
+        <li><strong>의미:</strong> 상승 추세가 끝나고 하락으로 전환되는 신호</li>
+        <li><strong>발생 조건:</strong> 
+          <ul style="margin-top:5px; padding-left:20px;">
+            <li>첫 번째 고점 형성</li>
+            <li>중간에 일시적 하락 (저점)</li>
+            <li>다시 상승하여 비슷한 고점 형성 (오차 4% 이내)</li>
+            <li>중간 저점을 하향 돌파하면 패턴 완성</li>
+          </ul>
+        </li>
+        <li><strong>목표가:</strong> 중간 저점 - (고점과 저점의 차이)</li>
+        <li><strong>전략:</strong> 패턴 완성 시 매도 또는 공매도</li>
+      </ul>
+    </div>
+    
+    <div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">
+      <h4 style="margin:0 0 10px 0; color:#10b981;">📈 더블바텀 (Double Bottom)</h4>
+      <ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">
+        <li><strong>모양:</strong> W자 형태 (두 번의 비슷한 저점)</li>
+        <li><strong>의미:</strong> 하락 추세가 끝나고 상승으로 전환되는 신호</li>
+        <li><strong>발생 조건:</strong>
+          <ul style="margin-top:5px; padding-left:20px;">
+            <li>첫 번째 저점 형성</li>
+            <li>중간에 일시적 반등 (고점)</li>
+            <li>다시 하락하여 비슷한 저점 형성 (오차 4% 이내)</li>
+            <li>중간 고점을 상향 돌파하면 패턴 완성</li>
+          </ul>
+        </li>
+        <li><strong>목표가:</strong> 중간 고점 + (고점과 저점의 차이)</li>
+        <li><strong>전략:</strong> 패턴 완성 시 매수</li>
+      </ul>
+    </div>
+    
+    <div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">
+      <h4 style="margin:0 0 10px 0; color:#7c3aed;">🎯 신뢰도 점수 해석</h4>
+      <ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">
+        <li><strong>90점 이상:</strong> 매우 명확한 패턴 → 신뢰도 높음</li>
+        <li><strong>80~89점:</strong> 명확한 패턴 → 실전 매매 가능</li>
+        <li><strong>70~79점:</strong> 준수한 패턴 → 다른 지표와 함께 확인</li>
+        <li><strong>60~69점:</strong> 약한 패턴 → 참고용으로만 활용</li>
+        <li><strong>60점 미만:</strong> 표시 안 됨 (신뢰도 부족)</li>
+      </ul>
+    </div>
+    
+    <div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">
+      <h4 style="margin:0 0 10px 0; color:#f59e0b;">📌 실전 활용 팁</h4>
+      <ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">
+        <li><strong>단독 사용 금지:</strong> 반드시 RSI, MACD 등 다른 지표와 함께 확인</li>
+        <li><strong>거래량 확인:</strong> 패턴 완성 시 거래량이 증가하면 신뢰도 UP</li>
+        <li><strong>추세 확인:</strong> 전체 추세(상승장/하락장)를 먼저 파악</li>
+        <li><strong>손절가 설정:</strong> 목표가만큼 손절가도 반드시 설정</li>
+        <li><strong>조기 진입 주의:</strong> 패턴이 완성되기 전 진입은 위험</li>
+      </ul>
+    </div>
+    
+    <div style="padding:10px; background:white; border-radius:6px;">
+      <h4 style="margin:0 0 10px 0; color:#dc2626;">⚠️ 주의사항</h4>
+      <ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">
+        <li><strong>실패 가능성:</strong> 모든 패턴이 100% 성공하는 것은 아님</li>
+        <li><strong>허위 돌파:</strong> 패턴이 완성된 것처럼 보였다가 실패할 수 있음</li>
+        <li><strong>시간:</strong> 패턴 형성에 최소 10일~수개월 소요</li>
+        <li><strong>오차 범위:</strong> 두 고점/저점의 가격 차이는 4% 이내만 인정</li>
+        <li><strong>미발견:</strong> 패턴이 없다고 나오는 것이 더 정상 (엄격한 기준)</li>
+      </ul>
+    </div>
+    
+    <div style="margin-top:15px; padding:10px; background:#fef3c7; border-radius:6px; border-left:4px solid #f59e0b;">
+      <p style="margin:0; font-size:0.85rem; color:#92400e; line-height:1.6;">
+        <strong>💡 TIP:</strong> 차트 패턴은 "과거에 이런 모양이 나타났을 때 이렇게 움직였다"는 통계적 접근입니다. 100% 정확하지 않으므로 반드시 손절가를 설정하고, 다른 기술적 지표(RSI, MACD)와 거래량을 함께 확인하세요. 특히 신뢰도 70점 미만은 무시하고, 80점 이상만 참고하는 것을 권장합니다.
+      </p>
+    </div>
+    
+  </div>
+</div>
+
+
+        <!-- 차트 패턴 인식 가이드 -->
+<div style="margin-top:15px;">
+  <button onclick="togglePatternGuide()" style="width:100%; padding:12px; background:#e0f2fe; border:1px solid #7dd3fc; border-radius:8px; cursor:pointer; font-weight:bold; text-align:left; display:flex; justify-content:space-between; align-items:center;">
+    <span>📖 차트 패턴 인식 가이드</span>
+    <span id="patternGuideToggle">▼</span>
+  </button>
+  <div id="patternGuideContent" style="display:none; padding:15px; background:#f0f9ff; border-radius:0 0 8px 8px; border:1px solid #7dd3fc; border-top:none; margin-top:-1px;">
+    
+    <div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">
+      <h4 style="margin:0 0 10px 0; color:#3b82f6;">📊 차트 패턴 인식이란?</h4>
+      <ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">
+        <li><strong>의미:</strong> 과거 주가 흐름에서 반복되는 가격 패턴을 찾아내는 기술</li>
+        <li><strong>목적:</strong> 패턴이 완성되면 이후 주가 방향을 예측</li>
+        <li><strong>현재 지원:</strong> 더블탑(하락 신호), 더블바텀(상승 신호)</li>
+        <li><strong>신뢰도:</strong> 60~100점 (높을수록 패턴이 명확함)</li>
+      </ul>
+    </div>
+    
+    <div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">
+      <h4 style="margin:0 0 10px 0; color:#ef4444;">📉 더블탑 (Double Top)</h4>
+      <ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">
+        <li><strong>모양:</strong> M자 형태 (두 번의 비슷한 고점)</li>
+        <li><strong>의미:</strong> 상승 추세가 끝나고 하락으로 전환되는 신호</li>
+        <li><strong>발생 조건:</strong> 
+          <ul style="margin-top:5px; padding-left:20px;">
+            <li>첫 번째 고점 형성</li>
+            <li>중간에 일시적 하락 (저점)</li>
+            <li>다시 상승하여 비슷한 고점 형성 (오차 4% 이내)</li>
+            <li>중간 저점을 하향 돌파하면 패턴 완성</li>
+          </ul>
+        </li>
+        <li><strong>목표가:</strong> 중간 저점 - (고점과 저점의 차이)</li>
+        <li><strong>전략:</strong> 패턴 완성 시 매도 또는 공매도</li>
+      </ul>
+    </div>
+    
+    <div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">
+      <h4 style="margin:0 0 10px 0; color:#10b981;">📈 더블바텀 (Double Bottom)</h4>
+      <ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">
+        <li><strong>모양:</strong> W자 형태 (두 번의 비슷한 저점)</li>
+        <li><strong>의미:</strong> 하락 추세가 끝나고 상승으로 전환되는 신호</li>
+        <li><strong>발생 조건:</strong>
+          <ul style="margin-top:5px; padding-left:20px;">
+            <li>첫 번째 저점 형성</li>
+            <li>중간에 일시적 반등 (고점)</li>
+            <li>다시 하락하여 비슷한 저점 형성 (오차 4% 이내)</li>
+            <li>중간 고점을 상향 돌파하면 패턴 완성</li>
+          </ul>
+        </li>
+        <li><strong>목표가:</strong> 중간 고점 + (고점과 저점의 차이)</li>
+        <li><strong>전략:</strong> 패턴 완성 시 매수</li>
+      </ul>
+    </div>
+    
+    <div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">
+      <h4 style="margin:0 0 10px 0; color:#7c3aed;">🎯 신뢰도 점수 해석</h4>
+      <ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">
+        <li><strong>90점 이상:</strong> 매우 명확한 패턴 → 신뢰도 높음</li>
+        <li><strong>80~89점:</strong> 명확한 패턴 → 실전 매매 가능</li>
+        <li><strong>70~79점:</strong> 준수한 패턴 → 다른 지표와 함께 확인</li>
+        <li><strong>60~69점:</strong> 약한 패턴 → 참고용으로만 활용</li>
+        <li><strong>60점 미만:</strong> 표시 안 됨 (신뢰도 부족)</li>
+      </ul>
+    </div>
+    
+    <div style="margin-bottom:15px; padding:10px; background:white; border-radius:6px;">
+      <h4 style="margin:0 0 10px 0; color:#f59e0b;">📌 실전 활용 팁</h4>
+      <ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">
+        <li><strong>단독 사용 금지:</strong> 반드시 RSI, MACD 등 다른 지표와 함께 확인</li>
+        <li><strong>거래량 확인:</strong> 패턴 완성 시 거래량이 증가하면 신뢰도 UP</li>
+        <li><strong>추세 확인:</strong> 전체 추세(상승장/하락장)를 먼저 파악</li>
+        <li><strong>손절가 설정:</strong> 목표가만큼 손절가도 반드시 설정</li>
+        <li><strong>조기 진입 주의:</strong> 패턴이 완성되기 전 진입은 위험</li>
+      </ul>
+    </div>
+    
+    <div style="padding:10px; background:white; border-radius:6px;">
+      <h4 style="margin:0 0 10px 0; color:#dc2626;">⚠️ 주의사항</h4>
+      <ul style="margin:5px 0; padding-left:20px; line-height:1.8; font-size:0.9rem;">
+        <li><strong>실패 가능성:</strong> 모든 패턴이 100% 성공하는 것은 아님</li>
+        <li><strong>허위 돌파:</strong> 패턴이 완성된 것처럼 보였다가 실패할 수 있음</li>
+        <li><strong>시간:</strong> 패턴 형성에 최소 10일~수개월 소요</li>
+        <li><strong>오차 범위:</strong> 두 고점/저점의 가격 차이는 4% 이내만 인정</li>
+        <li><strong>미발견:</strong> 패턴이 없다고 나오는 것이 더 정상 (엄격한 기준)</li>
+      </ul>
+    </div>
+    
+    <div style="margin-top:15px; padding:10px; background:#fef3c7; border-radius:6px; border-left:4px solid #f59e0b;">
+      <p style="margin:0; font-size:0.85rem; color:#92400e; line-height:1.6;">
+        <strong>💡 TIP:</strong> 차트 패턴은 "과거에 이런 모양이 나타났을 때 이렇게 움직였다"는 통계적 접근입니다. 100% 정확하지 않으므로 반드시 손절가를 설정하고, 다른 기술적 지표(RSI, MACD)와 거래량을 함께 확인하세요. 특히 신뢰도 70점 미만은 무시하고, 80점 이상만 참고하는 것을 권장합니다.
+      </p>
+    </div>
+    
+  </div>
+</div>
+
         <div class="card" style="margin-top:20px;">
           <h3>📊 보조 지표 선택</h3>
           <div style="display: flex; flex-wrap: wrap; gap: 5px;">
