@@ -10789,3 +10789,166 @@ function getDateFromIndex(index) {
   }
   return '날짜 정보 없음';
 }
+
+
+// ==================== 포트폴리오 최적화 ====================
+
+// 종목 개수 슬라이더 업데이트
+function updateStockCount(value) {
+  document.getElementById('stock-count-value').textContent = value;
+}
+
+// 시장 선택 버튼
+document.addEventListener('DOMContentLoaded', function() {
+  // 시장 선택
+  const marketBtns = document.querySelectorAll('.market-btn');
+  marketBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      marketBtns.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+
+  // 모드 선택
+  const modeBtns = document.querySelectorAll('.mode-btn');
+  modeBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      modeBtns.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+
+  // 최적화 실행 버튼
+  const optimizeBtn = document.getElementById('optimize-btn');
+  if (optimizeBtn) {
+    optimizeBtn.addEventListener('click', runPortfolioOptimization);
+  }
+});
+
+// 포트폴리오 최적화 실행
+async function runPortfolioOptimization() {
+  const stockCount = parseInt(document.getElementById('stock-count-slider').value);
+  const market = document.querySelector('.market-btn.active').dataset.market;
+  const mode = document.querySelector('.mode-btn.active').dataset.mode;
+  
+  console.log('최적화 실행:', { stockCount, market, mode });
+  
+  showLoading();
+  
+  try {
+    // API 호출
+    const response = await fetch('/api/optimizer/optimize', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        market: market,
+        stockCount: stockCount,
+        mode: mode
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      // 결과 표시
+      displayOptimizationResults(result.data);
+    } else {
+      alert('최적화 실패: ' + result.message);
+    }
+    
+  } catch (error) {
+    console.error('최적화 오류:', error);
+    alert('최적화 중 오류가 발생했습니다.');
+  } finally {
+    hideLoading();
+  }
+}
+
+
+// 최적화 결과 표시
+function displayOptimizationResults(data) {
+  const resultsDiv = document.getElementById('optimizer-results');
+  const contentDiv = document.getElementById('optimizer-result-content');
+  
+  if (!data || !data.stocks || data.stocks.length === 0) {
+    contentDiv.innerHTML = '<p>결과를 표시할 수 없습니다.</p>';
+    resultsDiv.style.display = 'block';
+    return;
+  }
+  
+  let html = '';
+  
+  // 포트폴리오 지표
+  html += '<div style="margin-bottom: 20px; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; color: white;">';
+  html += '<h4 style="margin: 0 0 15px 0;">📊 포트폴리오 지표</h4>';
+  html += '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">';
+  html += '<div style="text-align: center;">';
+  html += '<div style="font-size: 0.85rem; opacity: 0.9;">예상 수익률</div>';
+  html += '<div style="font-size: 1.5rem; font-weight: bold; margin-top: 5px;">' + data.metrics.expectedReturn + '</div>';
+  html += '</div>';
+  html += '<div style="text-align: center;">';
+  html += '<div style="font-size: 0.85rem; opacity: 0.9;">변동성</div>';
+  html += '<div style="font-size: 1.5rem; font-weight: bold; margin-top: 5px;">' + data.metrics.volatility + '</div>';
+  html += '</div>';
+  html += '<div style="text-align: center;">';
+  html += '<div style="font-size: 0.85rem; opacity: 0.9;">샤프 비율</div>';
+  html += '<div style="font-size: 1.5rem; font-weight: bold; margin-top: 5px;">' + data.metrics.sharpeRatio + '</div>';
+  html += '</div>';
+  html += '</div>';
+  html += '</div>';
+  
+  // 종목별 비중
+  html += '<h4 style="margin: 20px 0 10px 0;">💼 추천 포트폴리오 구성</h4>';
+  html += '<div style="overflow-x: auto;">';
+  html += '<table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">';
+  html += '<thead>';
+  html += '<tr style="background: #f3f4f6; border-bottom: 2px solid #e5e7eb;">';
+  html += '<th style="padding: 10px; text-align: left;">종목</th>';
+  html += '<th style="padding: 10px; text-align: center;">시장</th>';
+  html += '<th style="padding: 10px; text-align: center;">섹터</th>';
+  html += '<th style="padding: 10px; text-align: right;">비중</th>';
+  html += '<th style="padding: 10px; text-align: right;">기대수익률</th>';
+  html += '<th style="padding: 10px; text-align: right;">변동성</th>';
+  html += '</tr>';
+  html += '</thead>';
+  html += '<tbody>';
+  
+  data.stocks.forEach(function(stock, index) {
+    const bgColor = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+    const marketEmoji = stock.market === 'korea' ? '🇰🇷' : '🇺🇸';
+    
+    html += '<tr style="background: ' + bgColor + '; border-bottom: 1px solid #e5e7eb;">';
+    html += '<td style="padding: 10px;">';
+    html += '<div style="font-weight: bold;">' + stock.name + '</div>';
+    html += '<div style="font-size: 0.8rem; color: #666;">' + stock.code + '</div>';
+    html += '</td>';
+    html += '<td style="padding: 10px; text-align: center;">' + marketEmoji + '</td>';
+    html += '<td style="padding: 10px; text-align: center; font-size: 0.85rem;">' + stock.sector + '</td>';
+    html += '<td style="padding: 10px; text-align: right; font-weight: bold; color: #667eea;">' + (stock.weight * 100).toFixed(1) + '%</td>';
+    html += '<td style="padding: 10px; text-align: right;">' + (stock.expectedReturn * 100).toFixed(2) + '%</td>';
+    html += '<td style="padding: 10px; text-align: right;">' + (stock.volatility * 100).toFixed(2) + '%</td>';
+    html += '</tr>';
+  });
+  
+  html += '</tbody>';
+  html += '</table>';
+  html += '</div>';
+  
+  // 투자 안내
+  html += '<div style="margin-top: 20px; padding: 15px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px;">';
+  html += '<p style="margin: 0; font-size: 0.9rem; color: #92400e; line-height: 1.6;">';
+  html += '<strong>⚠️ 투자 유의사항:</strong><br>';
+  html += '• 이 분석은 과거 데이터 기반 참고 자료이며, 미래 수익을 보장하지 않습니다<br>';
+  html += '• 실제 투자 전 충분한 리서치와 분산 투자를 권장합니다<br>';
+  html += '• 본인의 투자 성향과 리스크 허용도를 고려하여 투자하세요';
+  html += '</p>';
+  html += '</div>';
+  
+  contentDiv.innerHTML = html;
+  resultsDiv.style.display = 'block';
+  
+  // 결과 영역으로 스크롤
+  resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}

@@ -32,6 +32,7 @@
         <button class="nav-item" data-tab="watchlist">⭐ 관심 종목</button>
         <button class="nav-item" data-tab="us-stock">🇺🇸 미국 주식</button>
         <button class="nav-item" data-tab="portfolio">💼 내 포트폴리오</button>
+        <button class="nav-item" data-tab="portfolio-optimizer">📊 포트폴리오 최적화</button>
         <button class="nav-item" data-tab="us-stock-finder">🔍 미국 종목 찾기</button>
         <button class="nav-item" data-tab="ai-lesson">🤖 AI 레슨</button>
       </nav>
@@ -1855,6 +1856,70 @@
         </div>
       </section>
       
+
+      <!-- 포트폴리오 최적화 -->
+      <section id="tab-portfolio-optimizer" class="tab-content">
+        <div class="tab-header">
+          <button class="back-btn" onclick="goBack()">
+            <span class="back-icon">←</span> 뒤로
+          </button>
+          <h2>📊 포트폴리오 최적화</h2>
+        </div>
+
+        <!-- 설정 카드 -->
+        <div class="card">
+          <h3>⚙️ 최적화 설정</h3>
+          
+          <!-- 종목 개수 설정 -->
+          <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: bold;">
+              📊 포트폴리오 종목 개수: <span id="stock-count-value">10</span>개
+            </label>
+            <input type="range" id="stock-count-slider" min="3" max="20" value="10" 
+                  style="width: 100%;" oninput="updateStockCount(this.value)">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #666;">
+              <span>3개</span>
+              <span>20개</span>
+            </div>
+          </div>
+
+          <!-- 시장 선택 -->
+          <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: bold;">
+              🌍 투자 시장
+            </label>
+            <div style="display: flex; gap: 10px;">
+              <button class="market-btn active" data-market="korea">🇰🇷 한국</button>
+              <button class="market-btn" data-market="us">🇺🇸 미국</button>
+              <button class="market-btn" data-market="mixed">🌐 혼합</button>
+            </div>
+          </div>
+
+          <!-- 선택 모드 -->
+          <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: bold;">
+              🎯 종목 선택 방식
+            </label>
+            <div style="display: flex; gap: 10px;">
+              <button class="mode-btn active" data-mode="auto">🤖 AI 자동 추천</button>
+              <button class="mode-btn" data-mode="manual">👤 직접 선택</button>
+            </div>
+          </div>
+
+          <!-- 최적화 실행 버튼 -->
+          <button id="optimize-btn" class="btn" style="width: 100%; padding: 15px; font-size: 1rem;">
+            🚀 포트폴리오 최적화 시작
+          </button>
+        </div>
+
+        <!-- 결과 표시 영역 -->
+        <div id="optimizer-results" style="display: none;">
+          <div class="card">
+            <h3>📈 최적화 결과</h3>
+            <div id="optimizer-result-content"></div>
+          </div>
+        </div>
+      </section>
 
 
       <!-- 종목 찾기 -->

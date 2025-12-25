@@ -28,6 +28,7 @@ const patternsRoutes = require('./routes/patterns');
 const usersRoutes = require('./api/users');
 const watchlistRoutes = require('./api/watchlist');
 const portfolioRoutes = require('./api/portfolio');
+const optimizerRoutes = require('./routes/optimizer');
 
 app.use('/api/korea', koreaRoutes);
 app.use('/api/us', usRoutes);
@@ -36,6 +37,7 @@ app.use('/api/users', usersRoutes);
 app.use('/api/watchlist', watchlistRoutes);
 app.use('/api/portfolio', portfolioRoutes);
 app.use('/api/patterns', patternsRoutes);
+app.use('/api/optimizer', optimizerRoutes);
 
 
 // 기본 라우트 (SPA)
