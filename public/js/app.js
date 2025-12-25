@@ -10815,23 +10815,239 @@ document.addEventListener('DOMContentLoaded', function() {
     btn.addEventListener('click', function() {
       modeBtns.forEach(b => b.classList.remove('active'));
       this.classList.add('active');
+      
+      // UI 전환
+      const mode = this.dataset.mode;
+      const manualUI = document.getElementById('manual-selection-ui');
+      const stockCountDiv = document.getElementById('stock-count-slider').closest('div');
+      
+      if (mode === 'manual') {
+        manualUI.style.display = 'block';
+        stockCountDiv.style.display = 'none'; // 직접 선택 시 슬라이더 숨김
+      } else {
+        manualUI.style.display = 'none';
+        stockCountDiv.style.display = 'block';
+      }
     });
   });
-
-  // 최적화 실행 버튼
-  const optimizeBtn = document.getElementById('optimize-btn');
-  if (optimizeBtn) {
-    optimizeBtn.addEventListener('click', runPortfolioOptimization);
-  }
 });
+//최적화 실행 버튼
+const optimizeBtn = document.getElementById('optimize-btn');
+if (optimizeBtn) {
+optimizeBtn.addEventListener('click', runPortfolioOptimization);
+}
+
+
+// 선택된 종목 목록
+let selectedStocks = [];
+
+// 종목 추가
+const addStockBtn = document.getElementById('add-stock-btn');
+if (addStockBtn) {
+  addStockBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('버튼 클릭 이벤트!'); // 디버그
+    addStockToSelection();
+  });
+}
+  
+  const searchInput = document.getElementById('stock-search-input');
+if (searchInput) {
+  searchInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('Enter 키 이벤트!'); // 디버그
+      addStockToSelection();
+    }
+  });
+}
+  
+  const clearAllBtn = document.getElementById('clear-all-btn');
+  if (clearAllBtn) {
+    clearAllBtn.addEventListener('click', clearAllStocks);
+  }
+
+
+// 종목 검색 및 추가
+async function addStockToSelection() {
+  const inputElement = document.getElementById('portfolio-stock-input');;
+  console.log('Input Element:', inputElement); // 디버그
+  
+  if (!inputElement) {
+    alert('검색창을 찾을 수 없습니다.');
+    return;
+  }
+  
+  const input = inputElement.value.trim();
+  console.log('Input Value:', input); // 디버그
+  
+  if (!input) {
+    alert('종목명 또는 종목코드를 입력하세요.');
+    return;
+  }
+  
+  showLoading();
+  
+  try {
+    // 시장 확인 (한국/미국)
+    const market = document.querySelector('.market-btn.active').dataset.market;
+    
+    let stockInfo = null;
+    
+    // 한국 종목 검색
+    if (market === 'korea' || market === 'mixed') {
+      stockInfo = await searchKoreanStock(input);
+    }
+    
+    // 미국 종목 검색
+    if (!stockInfo && (market === 'us' || market === 'mixed')) {
+      stockInfo = await searchUSStock(input);
+    }
+    
+    if (stockInfo) {
+      selectedStocks.push(stockInfo);
+      updateSelectedStocksList();
+      document.getElementById('stock-search-input').value = '';
+    } else {
+      alert('종목을 찾을 수 없습니다: ' + input);
+    }
+    
+  } catch (error) {
+    console.error('종목 검색 오류:', error);
+    alert('종목 검색 중 오류가 발생했습니다.');
+  } finally {
+    hideLoading();
+  }
+}
+
+
+
+async function searchKoreanStock(query) {
+  try {
+    const response = await fetch(`/api/korea/search?keyword=${encodeURIComponent(query)}`);
+    const result = await response.json();
+    
+    // 배열로 반환되므로 첫 번째 항목 사용!
+    if (result.success && result.data && result.data.length > 0) {
+      const stock = result.data[0];  // ← 첫 번째 항목!
+      
+      return {
+        code: stock.code,
+        name: stock.name,
+        market: 'korea',
+        sector: stock.sector || '기타'
+      };
+    }
+    
+    return null;
+    
+  } catch (error) {
+    console.error('한국 종목 검색 오류:', error);
+    return null;
+  }
+}
+
+
+// 미국 종목 검색
+async function searchUSStock(query) {
+  // 간단 버전: 미리 정의된 목록에서 검색
+  const usStocks = {
+    'AAPL': { name: 'Apple Inc.', sector: 'Technology' },
+    'MSFT': { name: 'Microsoft', sector: 'Technology' },
+    'GOOGL': { name: 'Alphabet', sector: 'Technology' },
+    'AMZN': { name: 'Amazon', sector: 'Consumer' },
+    'NVDA': { name: 'NVIDIA', sector: 'Technology' },
+    'META': { name: 'Meta', sector: 'Technology' },
+    'TSLA': { name: 'Tesla', sector: 'Automotive' },
+  };
+  
+  const upperQuery = query.toUpperCase();
+  
+  if (usStocks[upperQuery]) {
+    return {
+      code: upperQuery,
+      name: usStocks[upperQuery].name,
+      market: 'us',
+      sector: usStocks[upperQuery].sector
+    };
+  }
+  
+  return null;
+}
+
+// 선택된 종목 목록 업데이트
+function updateSelectedStocksList() {
+  const listDiv = document.getElementById('selected-stocks-list');
+  const countSpan = document.getElementById('selected-count');
+  
+  countSpan.textContent = selectedStocks.length;
+  
+  if (selectedStocks.length === 0) {
+    listDiv.innerHTML = '<p style="color: #666; text-align: center; margin: 20px 0;">종목을 검색하여 추가하세요</p>';
+    return;
+  }
+  
+  let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+  
+  selectedStocks.forEach((stock, index) => {
+    const marketEmoji = stock.market === 'korea' ? '🇰🇷' : '🇺🇸';
+    
+    html += '<div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f9fafb; border-radius: 6px;">';
+    html += '<div style="flex: 1;">';
+    html += '<span style="font-weight: bold;">' + stock.name + '</span>';
+    html += ' <span style="color: #666; font-size: 0.85rem;">(' + stock.code + ')</span>';
+    html += ' ' + marketEmoji;
+    html += '</div>';
+    html += '<button class="btn-secondary" onclick="removeStock(' + index + ')" style="padding: 5px 10px; font-size: 0.85rem;">삭제</button>';
+    html += '</div>';
+  });
+  
+  html += '</div>';
+  
+  listDiv.innerHTML = html;
+}
+
+// 종목 삭제
+function removeStock(index) {
+  selectedStocks.splice(index, 1);
+  updateSelectedStocksList();
+}
+
+// 전체 삭제
+function clearAllStocks() {
+  if (selectedStocks.length === 0) return;
+  
+  if (confirm('선택된 모든 종목을 삭제하시겠습니까?')) {
+    selectedStocks = [];
+    updateSelectedStocksList();
+  }
+}
+
 
 // 포트폴리오 최적화 실행
 async function runPortfolioOptimization() {
-  const stockCount = parseInt(document.getElementById('stock-count-slider').value);
   const market = document.querySelector('.market-btn.active').dataset.market;
   const mode = document.querySelector('.mode-btn.active').dataset.mode;
   
-  console.log('최적화 실행:', { stockCount, market, mode });
+  // 직접 선택 모드 검증
+  if (mode === 'manual') {
+    if (selectedStocks.length < 3) {
+      alert('최소 3개 이상의 종목을 선택해주세요.');
+      return;
+    }
+    if (selectedStocks.length > 20) {
+      alert('최대 20개까지만 선택할 수 있습니다.');
+      return;
+    }
+  }
+  
+  const stockCount = mode === 'auto' 
+    ? parseInt(document.getElementById('stock-count-slider').value)
+    : selectedStocks.length;
+  
+  console.log('최적화 실행:', { stockCount, market, mode, selectedStocks });
   
   showLoading();
   
@@ -10845,7 +11061,8 @@ async function runPortfolioOptimization() {
       body: JSON.stringify({
         market: market,
         stockCount: stockCount,
-        mode: mode
+        mode: mode,
+        selectedStocks: mode === 'manual' ? selectedStocks : undefined
       })
     });
     

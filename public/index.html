@@ -1910,6 +1910,35 @@
           <button id="optimize-btn" class="btn" style="width: 100%; padding: 15px; font-size: 1rem;">
             🚀 포트폴리오 최적화 시작
           </button>
+
+          
+
+        <!-- 직접 선택 UI (숨김 상태) -->
+        <div id="manual-selection-ui" style="display: none; margin-bottom: 20px;">
+          <div style="margin-bottom: 15px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: bold;">
+              🔍 종목 검색 및 추가
+            </label>
+            <div style="display: flex; gap: 10px;">
+              <input type="text" id="portfolio-stock-input" placeholder="종목명 또는 종목코드 입력" 
+                    style="flex: 1; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px;">
+              <button id="add-stock-btn" class="btn" style="padding: 10px 20px;">➕ 추가</button>
+            </div>
+          </div>
+```
+
+            
+            <!-- 선택된 종목 목록 -->
+            <div style="border: 2px solid #e5e7eb; border-radius: 8px; padding: 15px; min-height: 100px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <strong>📋 선택된 종목 (<span id="selected-count">0</span>개)</strong>
+                <button id="clear-all-btn" class="btn-secondary" style="padding: 5px 10px; font-size: 0.85rem;">🗑️ 전체 삭제</button>
+              </div>
+              <div id="selected-stocks-list">
+                <p style="color: #666; text-align: center; margin: 20px 0;">종목을 검색하여 추가하세요</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- 결과 표시 영역 -->

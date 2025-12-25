@@ -38,14 +38,14 @@ async function getTopKoreanStocks(count) {
     
     // 시가총액 상위 종목 선택
     return stocks
-      .slice(0, count)
-      .map(stock => ({
-        code: stock.stockCode,
-        name: stock.stockName,
-        market: 'korea',
-        marketCap: stock.marketValue,
-        sector: stock.industryCodeName || '기타'
-      }));
+  .slice(0, count)
+  .map(stock => ({
+    code: stock.stockCode,
+    name: stock.stockName || stock.itemabbrnm || '종목명 없음',
+    market: 'korea',
+    marketCap: stock.marketValue || stock.marketSum,
+    sector: stock.industryCodeName || stock.sector || '기타'
+  }));
   } catch (error) {
     console.error('한국 종목 조회 오류:', error);
     // 폴백: 기본 종목 리스트
@@ -84,21 +84,33 @@ async function getTopUSStocks(count) {
   }));
 }
 
+
+
 /**
  * 기본 한국 종목 리스트 (폴백용)
  */
 function getDefaultKoreanStocks(count) {
   const defaultStocks = [
-    { code: '005930', name: '삼성전자', sector: '전기전자' },
-    { code: '000660', name: 'SK하이닉스', sector: '전기전자' },
-    { code: '373220', name: 'LG에너지솔루션', sector: '전기전자' },
-    { code: '207940', name: '삼성바이오로직스', sector: '의약품' },
-    { code: '005380', name: '현대차', sector: '운수장비' },
-    { code: '006400', name: '삼성SDI', sector: '전기전자' },
+    { code: '005930', name: '삼성전자', sector: '반도체' },
+    { code: '000660', name: 'SK하이닉스', sector: '반도체' },
+    { code: '373220', name: 'LG에너지솔루션', sector: '2차전지' },
+    { code: '207940', name: '삼성바이오로직스', sector: '바이오' },
+    { code: '005380', name: '현대차', sector: '자동차' },
+    { code: '006400', name: '삼성SDI', sector: '2차전지' },
     { code: '051910', name: 'LG화학', sector: '화학' },
-    { code: '005490', name: 'POSCO홀딩스', sector: '철강금속' },
-    { code: '035420', name: 'NAVER', sector: '서비스업' },
-    { code: '068270', name: '셀트리온', sector: '의약품' },
+    { code: '005490', name: 'POSCO홀딩스', sector: '철강' },
+    { code: '035420', name: 'NAVER', sector: 'IT서비스' },
+    { code: '068270', name: '셀트리온', sector: '바이오' },
+    { code: '035720', name: '카카오', sector: 'IT서비스' },
+    { code: '012330', name: '현대모비스', sector: '자동차부품' },
+    { code: '003670', name: '포스코퓨처엠', sector: '소재' },
+    { code: '066570', name: 'LG전자', sector: '전자' },
+    { code: '096770', name: 'SK이노베이션', sector: '에너지' },
+    { code: '105560', name: 'KB금융', sector: '금융' },
+    { code: '055550', name: '신한지주', sector: '금융' },
+    { code: '086790', name: '하나금융지주', sector: '금융' },
+    { code: '032830', name: '삼성생명', sector: '금융' },
+    { code: '015760', name: '한국전력', sector: '유틸리티' },
   ];
   
   return defaultStocks.slice(0, count).map(stock => ({
@@ -108,6 +120,8 @@ function getDefaultKoreanStocks(count) {
     sector: stock.sector
   }));
 }
+
+
 
 module.exports = {
   recommendStocks
@@ -161,26 +175,54 @@ async function optimizePortfolio(stocks) {
   }
 }
 
+
 /**
  * 과거 데이터 조회 (간단 버전)
  */
 async function getHistoricalData(code, market) {
-  // 실제로는 API 호출, 여기서는 임시 데이터
-  // TODO: 실제 과거 데이터 API 연동
-  
-  // 임시: 랜덤 데이터 생성 (테스트용)
+  try {
+    let url;
+    
+    if (market === 'korea') {
+      url = `http://localhost:3000/api/korea/chart/${code}`;
+    } else {
+      url = `http://localhost:3000/api/us/chart/${code}`;
+    }
+    
+    const response = await axios.get(url);
+    
+    if (response.data.success && response.data.data) {
+      return response.data.data.map(item => ({
+        date: item.time || item.date,
+        close: item.close
+      }));
+    }
+    
+    // API 실패 시 폴백
+    return generateFallbackData();
+    
+  } catch (error) {
+    console.error(`과거 데이터 조회 오류 (${code}):`, error.message);
+    return generateFallbackData();
+  }
+}
+
+// 폴백 데이터 생성 (API 실패 시)
+function generateFallbackData() {
   const days = 60;
   const data = [];
   let price = 100;
   
   for (let i = 0; i < days; i++) {
-    const change = (Math.random() - 0.5) * 0.04; // ±2% 변동
+    const change = (Math.random() - 0.5) * 0.04;
     price = price * (1 + change);
     data.push({ date: new Date(Date.now() - i * 86400000), close: price });
   }
   
   return data.reverse();
 }
+
+
 
 /**
  * 수익률 계산
