@@ -1,3 +1,22 @@
+// ========== 카카오 SDK 초기화 ==========
+const KAKAO_JS_KEY = '0b0ac974f6bfe8e8a63ee07356db143c';
+const KAKAO_REDIRECT_URI = 'https://stock-pwa.vercel.app/oauth';
+
+// 카카오 SDK 초기화
+function initKakao() {
+    if (typeof Kakao !== 'undefined' && !Kakao.isInitialized()) {
+        Kakao.init(KAKAO_JS_KEY);
+        console.log('카카오 SDK 초기화 완료:', Kakao.isInitialized());
+    }
+}
+
+// 페이지 로드 시 초기화
+document.addEventListener('DOMContentLoaded', () => {
+    initKakao();
+    checkKakaoLoginStatus();
+});
+
+
 // API 기본 URL
 const API_BASE = '';
 
@@ -11613,5 +11632,143 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+
+
+// ========== 카카오 로그인 관련 함수 ==========
+
+// 카카오 로그인
+function kakaoLogin() {
+    Kakao.Auth.authorize({
+        redirectUri: KAKAO_REDIRECT_URI,
+        scope: 'talk_message'  // 나에게 메시지 보내기 권한
+    });
+}
+
+// 카카오 로그아웃
+function kakaoLogout() {
+    if (Kakao.Auth.getAccessToken()) {
+        Kakao.Auth.logout(() => {
+            localStorage.removeItem('kakaoToken');
+            localStorage.removeItem('kakaoUser');
+            updateKakaoUI(false);
+            alert('카카오 로그아웃 완료');
+        });
+    }
+}
+
+// OAuth 콜백 처리 (인가코드로 토큰 받기)
+async function handleKakaoCallback() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    
+    if (code) {
+        try {
+            // 인가코드로 토큰 받기
+            const response = await fetch('https://kauth.kakao.com/oauth/token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                    grant_type: 'authorization_code',
+                    client_id: KAKAO_JS_KEY,
+                    redirect_uri: KAKAO_REDIRECT_URI,
+                    code: code
+                })
+            });
+            
+            const tokenData = await response.json();
+            
+            if (tokenData.access_token) {
+                // 토큰 저장
+                localStorage.setItem('kakaoToken', tokenData.access_token);
+                Kakao.Auth.setAccessToken(tokenData.access_token);
+                
+                // 사용자 정보 가져오기
+                const userInfo = await Kakao.API.request({ url: '/v2/user/me' });
+                localStorage.setItem('kakaoUser', JSON.stringify(userInfo));
+                
+                console.log('카카오 로그인 성공:', userInfo);
+                updateKakaoUI(true, userInfo);
+                
+                // URL에서 code 파라미터 제거
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        } catch (error) {
+            console.error('카카오 토큰 요청 실패:', error);
+            alert('카카오 로그인 처리 중 오류가 발생했습니다.');
+        }
+    }
+}
+
+// 로그인 상태 확인
+function checkKakaoLoginStatus() {
+    const token = localStorage.getItem('kakaoToken');
+    const userInfo = localStorage.getItem('kakaoUser');
+    
+    if (token && userInfo) {
+        Kakao.Auth.setAccessToken(token);
+        updateKakaoUI(true, JSON.parse(userInfo));
+    } else {
+        // OAuth 콜백 확인
+        handleKakaoCallback();
+    }
+}
+
+// UI 업데이트
+function updateKakaoUI(isLoggedIn, userInfo = null) {
+    const loginBtn = document.getElementById('kakaoLoginBtn');
+    const logoutBtn = document.getElementById('kakaoLogoutBtn');
+    const userStatus = document.getElementById('kakaoUserStatus');
+    const notificationSettings = document.getElementById('notificationSettings');
+    
+    if (isLoggedIn && userInfo) {
+        if (loginBtn) loginBtn.style.display = 'none';
+        if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+        if (userStatus) userStatus.textContent = `${userInfo.properties?.nickname || '사용자'}님 연동됨`;
+        if (notificationSettings) notificationSettings.style.display = 'block';
+    } else {
+        if (loginBtn) loginBtn.style.display = 'inline-flex';
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        if (userStatus) userStatus.textContent = '';
+        if (notificationSettings) notificationSettings.style.display = 'none';
+    }
+}
+
+
+// 카카오톡 나에게 메시지 보내기 (테스트)
+async function testKakaoMessage() {
+    if (!Kakao.Auth.getAccessToken()) {
+        alert('카카오 로그인이 필요합니다.');
+        return;
+    }
+    
+    try {
+        await Kakao.API.request({
+            url: '/v2/api/talk/memo/default/send',
+            data: {
+                template_object: {
+                    object_type: 'text',
+                    text: '📈 Stock-PWA 알림 테스트\n\n카카오톡 알림이 정상적으로 연동되었습니다!',
+                    link: {
+                        web_url: 'https://stock-pwa.vercel.app',
+                        mobile_web_url: 'https://stock-pwa.vercel.app'
+                    },
+                    button_title: '앱으로 이동'
+                }
+            }
+        });
+        alert('테스트 메시지가 전송되었습니다! 카카오톡을 확인하세요.');
+    } catch (error) {
+        console.error('메시지 전송 실패:', error);
+        if (error.code === -401) {
+            alert('카카오 로그인이 만료되었습니다. 다시 로그인해주세요.');
+            localStorage.removeItem('kakaoToken');
+            updateKakaoUI(false);
+        } else {
+            alert('메시지 전송 실패: ' + (error.msg || error.message));
+        }
+    }
+}
 
 

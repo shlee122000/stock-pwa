@@ -6,6 +6,10 @@
   <meta name="theme-color" content="#1e3a5f">
   <meta name="description" content="AI 기반 주식 분석 프로그램">
   <link rel="manifest" href="/manifest.json">
+  <!-- 카카오 SDK -->
+  <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" 
+        integrity="sha384-TiCUE00h649CAMonG018J2ujOgDKW/kVWlChEuu4jK2vxfAAD0eZxzCKakxg55G4" 
+        crossorigin="anonymous"></script>
   <title>📈 AI 주식 분석</title>
   
   <!-- Chart.js -->
@@ -91,6 +95,68 @@
             </div>
           </div>
           
+          <div class="card">
+  <h3>🔔 알림 현황</h3>
+  <div id="dashboard-alert-summary">
+  </div>
+</div>
+
+<!-- ✅ 여기에 추가! 카카오톡 알림 설정 -->
+<div class="card">
+  <h3>📱 카카오톡 알림</h3>
+  <div id="kakao-notification-section">
+    <!-- 카카오 로그인 버튼 -->
+    <div style="margin-bottom: 15px;">
+      <button id="kakaoLoginBtn" onclick="kakaoLogin()" 
+              style="background: #FEE500; color: #000; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+        💬 카카오 로그인
+      </button>
+      <button id="kakaoLogoutBtn" onclick="kakaoLogout()" 
+              style="display: none; background: #555; color: #fff; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer;">
+        로그아웃
+      </button>
+      <span id="kakaoUserStatus" style="color: #4ade80; margin-left: 10px;"></span>
+    </div>
+    
+    <!-- 알림 설정 (로그인 후 표시) -->
+    <div id="notificationSettings" style="display: none;">
+      <label style="display: block; margin: 8px 0; cursor: pointer;">
+        <input type="checkbox" id="alertPriceTarget" style="margin-right: 8px;">
+        목표가 도달 시 알림
+      </label>
+      <label style="display: block; margin: 8px 0; cursor: pointer;">
+        <input type="checkbox" id="alertBigChange" style="margin-right: 8px;">
+        급등/급락 (±5% 이상) 알림
+      </label>
+      <label style="display: block; margin: 8px 0; cursor: pointer;">
+        <input type="checkbox" id="alertSignal" style="margin-right: 8px;">
+        매수/매도 신호 발생 시 알림
+      </label>
+      <button onclick="testKakaoMessage()" 
+              style="margin-top: 10px; background: #3b82f6; color: #fff; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer;">
+        🔔 테스트 메시지 보내기
+      </button>
+    </div>
+  </div>
+</div>
+```
+
+---
+
+## 📋 위치 요약
+```
+<div class="card">
+  <h3>🔔 알림 현황</h3>
+  ...
+</div>
+
+<!-- ⬇️ 바로 여기 아래에 추가 ⬇️ -->
+
+<div class="card">
+  <h3>📱 카카오톡 알림</h3>
+  ...
+</div>
+
           <div class="card dashboard-exchange-card">
             <h3>💱 환율 정보</h3>
             <div id="dashboard-exchange-rate">
