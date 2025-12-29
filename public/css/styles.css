@@ -1077,3 +1077,192 @@ tr:hover {
   border: none;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
+
+
+/* =============================================
+   포트폴리오 최적화 - Phase A 추가 스타일
+   ============================================= */
+
+/* 최적화 결과 요약 카드 */
+#optimizer-results .card:first-child {
+  animation: slideInUp 0.5s ease;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 파이 차트 컨테이너 */
+#allocation-pie-chart {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* 상관관계 매트릭스 테이블 */
+#correlation-matrix table {
+  border-collapse: separate;
+  border-spacing: 2px;
+}
+
+#correlation-matrix th,
+#correlation-matrix td {
+  padding: 8px;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+#correlation-matrix th {
+  background: #f1f5f9;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* 리스크 분석 그리드 */
+#risk-analysis .grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+/* 선택된 종목 리스트 애니메이션 */
+#selected-stocks-list > div {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 최적화 버튼 호버 효과 */
+#optimize-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+#optimize-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+#optimize-btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* 테이블 호버 효과 강화 */
+#allocation-table-body tr {
+  transition: all 0.2s;
+}
+
+#allocation-table-body tr:hover {
+  background: #f0f9ff;
+  transform: scale(1.02);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+  #allocation-pie-chart {
+    max-width: 100%;
+  }
+  
+  #correlation-matrix {
+    font-size: 0.75rem;
+  }
+  
+  #correlation-matrix td {
+    padding: 5px;
+  }
+  
+  #risk-analysis .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 로딩 상태 */
+.optimizer-loading {
+  text-align: center;
+  padding: 40px;
+  color: #64748b;
+}
+
+.optimizer-loading::after {
+  content: '...';
+  animation: dots 1.5s infinite;
+}
+
+@keyframes dots {
+  0%, 20% {
+    content: '.';
+  }
+  40% {
+    content: '..';
+  }
+  60%, 100% {
+    content: '...';
+  }
+}
+
+/* 성공/실패 알림 배지 */
+.optimizer-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.optimizer-badge.success {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.optimizer-badge.warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.optimizer-badge.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* 다각화 점수 게이지 */
+.diversification-gauge {
+  width: 100%;
+  height: 20px;
+  background: #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.diversification-gauge-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #10b981 100%);
+  transition: width 0.5s ease;
+}

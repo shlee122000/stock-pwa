@@ -12,7 +12,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <!-- CSS -->
-  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/styles.css?v=53">
 </head>
 <body>
   <div class="app-container">
@@ -1640,27 +1640,7 @@
           <div id="us-ai-result" style="margin-top:15px;"></div>
         </div>
         
-        <!-- 미국 AI 포트폴리오 -->
-        <div class="card" style="margin-top:20px;">
-          <h3>💼 미국 AI 포트폴리오 추천</h3>
-          <p style="color:#666; margin-bottom:15px;">종목 간 상관관계를 분석하여 최적의 투자 비중을 계산합니다</p>
-          
-          <div style="margin-bottom:15px;">
-            <div class="search-box">
-              <input type="text" id="us-ai-portfolio-input" placeholder="심볼 입력 (예: AAPL)">
-              <button id="us-ai-portfolio-add-btn" class="btn-secondary">종목 추가</button>
-            </div>
-            <div id="us-ai-portfolio-list" style="margin-top:10px;"></div>
-          </div>
-          
-          <div style="margin-bottom:15px;">
-            <label style="margin-right:10px;">총 투자금액:</label>
-            <input type="number" id="us-ai-portfolio-amount" placeholder="10000" style="width:120px;"> 달러
-            <button id="us-ai-portfolio-analyze-btn" class="btn-primary" style="margin-left:15px;">최적 비중 분석</button>
-          </div>
-          
-          <div id="us-ai-portfolio-result" style="margin-top:15px;"></div>
-        </div>
+        
       </section>
       
       
@@ -1857,6 +1837,12 @@
       </section>
       
 
+      
+      
+            
+      <!-- 포트폴리오 최적화 탭 개선 (기존 내용 대체) -->
+      <!-- ========================================= -->
+
       <!-- 포트폴리오 최적화 -->
       <section id="tab-portfolio-optimizer" class="tab-content">
         <div class="tab-header">
@@ -1888,10 +1874,10 @@
             <label style="display: block; margin-bottom: 8px; font-weight: bold;">
               🌍 투자 시장
             </label>
-            <div style="display: flex; gap: 10px;">
-              <button class="market-btn active" data-market="korea">🇰🇷 한국</button>
-              <button class="market-btn" data-market="us">🇺🇸 미국</button>
-              <button class="market-btn" data-market="mixed">🌐 혼합</button>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button class="market-btn active" data-market="korea" onclick="selectMarket('korea')">🇰🇷 한국</button>
+              <button class="market-btn" data-market="us" onclick="selectMarket('us')">🇺🇸 미국</button>
+              <button class="market-btn" data-market="mixed" onclick="selectMarket('mixed')">🌐 혼합</button>
             </div>
           </div>
 
@@ -1900,55 +1886,147 @@
             <label style="display: block; margin-bottom: 8px; font-weight: bold;">
               🎯 종목 선택 방식
             </label>
-            <div style="display: flex; gap: 10px;">
-              <button class="mode-btn active" data-mode="auto">🤖 AI 자동 추천</button>
-              <button class="mode-btn" data-mode="manual">👤 직접 선택</button>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button class="mode-btn active" data-mode="auto" onclick="selectMode('auto')">🤖 AI 자동 추천</button>
+              <button class="mode-btn" data-mode="manual" onclick="selectMode('manual')">👤 직접 선택</button>
             </div>
           </div>
 
-          <!-- 최적화 실행 버튼 -->
-          <button id="optimize-btn" class="btn" style="width: 100%; padding: 15px; font-size: 1rem;">
-            🚀 포트폴리오 최적화 시작
-          </button>
-
-          
-
-        <!-- 직접 선택 UI (숨김 상태) -->
-        <div id="manual-selection-ui" style="display: none; margin-bottom: 20px;">
-          <div style="margin-bottom: 15px;">
+          <!-- AI 자동 추천 UI -->
+          <div id="auto-selection-ui" style="margin-bottom: 20px;">
             <label style="display: block; margin-bottom: 8px; font-weight: bold;">
-              🔍 종목 검색 및 추가
+              🤖 AI 추천 기준 선택
             </label>
-            <div style="display: flex; gap: 10px;">
-              <input type="text" id="portfolio-stock-input" placeholder="종목명 또는 종목코드 입력" 
-                    style="flex: 1; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px;">
-              <button id="add-stock-btn" class="btn" style="padding: 10px 20px;">➕ 추가</button>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button class="btn-secondary" onclick="aiSelectByMarketCap('large')">🏢 대형주</button>
+              <button class="btn-secondary" onclick="aiSelectByMarketCap('mid')">🏠 중형주</button>
+              <button class="btn-secondary" onclick="aiSelectByMarketCap('small')">🏪 소형주</button>
+            </div>
+            <div style="margin-top: 10px;">
+              <select id="ai-theme-selector" style="width: 100%; padding: 10px; border-radius: 8px; border: 2px solid #e5e7eb;">
+                <option value="">-- 또는 테마 선택 --</option>
+              </select>
+              <button class="btn-secondary" onclick="aiSelectByTheme()" style="width: 100%; margin-top: 10px;">테마로 종목 추천</button>
             </div>
           </div>
-```
 
+          <!-- 직접 선택 UI (숨김 상태) -->
+          <div id="manual-selection-ui" style="display: none; margin-bottom: 20px;">
+            <div style="margin-bottom: 15px;">
+              <label style="display: block; margin-bottom: 8px; font-weight: bold;">
+                🔍 종목 검색 및 추가
+              </label>
+              <div class="search-box">
+                <input type="text" id="portfolio-stock-input" placeholder="종목명 또는 종목코드 입력" 
+                      style="flex: 1; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px;">
+                <button id="add-stock-btn" class="btn-primary" onclick="manualAddStock()">➕ 추가</button>
+              </div>
+            </div>
             
             <!-- 선택된 종목 목록 -->
             <div style="border: 2px solid #e5e7eb; border-radius: 8px; padding: 15px; min-height: 100px;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <strong>📋 선택된 종목 (<span id="selected-count">0</span>개)</strong>
-                <button id="clear-all-btn" class="btn-secondary" style="padding: 5px 10px; font-size: 0.85rem;">🗑️ 전체 삭제</button>
+                <button id="clear-all-btn" class="btn-secondary" onclick="clearAllStocks()" style="padding: 5px 10px; font-size: 0.85rem;">🗑️ 전체 삭제</button>
               </div>
               <div id="selected-stocks-list">
                 <p style="color: #666; text-align: center; margin: 20px 0;">종목을 검색하여 추가하세요</p>
               </div>
             </div>
           </div>
+
+          <!-- 투자 금액 설정 -->
+          <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: bold;">
+              💰 총 투자 금액
+            </label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <input type="number" id="total-investment-amount" placeholder="1000" 
+                    style="flex: 1; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px;" value="1000">
+              <span style="font-weight: bold; color: #1e3a5f;">만원</span>
+            </div>
+          </div>
+
+          <!-- 최적화 실행 버튼 -->
+          <button id="optimize-btn" class="btn-primary" onclick="runOptimization()" 
+                  style="width: 100%; padding: 15px; font-size: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+            🚀 포트폴리오 최적화 시작
+          </button>
         </div>
 
         <!-- 결과 표시 영역 -->
         <div id="optimizer-results" style="display: none;">
+          
+          <!-- 요약 카드 -->
+          <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <h3 style="color: white; margin-bottom: 15px;">📊 최적화 결과 요약</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+              <div>
+                <div style="font-size: 0.85rem; opacity: 0.9;">총 종목 수</div>
+                <div id="summary-stock-count" style="font-size: 1.8rem; font-weight: bold; margin-top: 5px;">-</div>
+              </div>
+              <div>
+                <div style="font-size: 0.85rem; opacity: 0.9;">예상 연 수익률</div>
+                <div id="summary-expected-return" style="font-size: 1.8rem; font-weight: bold; margin-top: 5px;">-</div>
+              </div>
+              <div>
+                <div style="font-size: 0.85rem; opacity: 0.9;">예상 연 변동성</div>
+                <div id="summary-volatility" style="font-size: 1.8rem; font-weight: bold; margin-top: 5px;">-</div>
+              </div>
+              <div>
+                <div style="font-size: 0.85rem; opacity: 0.9;">다각화 점수</div>
+                <div id="summary-diversification" style="font-size: 1.8rem; font-weight: bold; margin-top: 5px;">-</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 투자 비중 차트 -->
           <div class="card">
-            <h3>📈 최적화 결과</h3>
-            <div id="optimizer-result-content"></div>
+            <h3>📊 최적 투자 비중 (파이 차트)</h3>
+            <div style="max-width: 500px; margin: 0 auto;">
+              <canvas id="allocation-pie-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- 상세 배분 테이블 -->
+          <div class="card">
+            <h3>📋 종목별 상세 배분</h3>
+            <div style="overflow-x: auto;">
+              <table id="allocation-table" style="width: 100%;">
+                <thead>
+                  <tr>
+                    <th>종목명</th>
+                    <th>종목코드</th>
+                    <th>비중 (%)</th>
+                    <th>투자금액 (만원)</th>
+                    <th>예상 수익률</th>
+                  </tr>
+                </thead>
+                <tbody id="allocation-table-body">
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 상관관계 분석 -->
+          <div class="card">
+            <h3>🔗 종목 간 상관관계 분석</h3>
+            <p style="color: #666; margin-bottom: 15px; font-size: 0.9rem;">
+              상관계수가 낮을수록 다각화 효과가 높습니다. (-1 ~ 1)
+            </p>
+            <div id="correlation-matrix"></div>
+          </div>
+
+          <!-- 리스크 분석 -->
+          <div class="card">
+            <h3>⚠️ 리스크 분석</h3>
+            <div id="risk-analysis"></div>
           </div>
         </div>
       </section>
+
+
+
 
 
       <!-- 종목 찾기 -->
@@ -2104,24 +2182,27 @@
           <div id="ai-pattern-result" style="margin-top:15px;"></div>
         </div>
         
-        <!-- AI 포트폴리오 추천 -->
-        <div class="card" style="margin-top:20px;">
-          <h3>💼 AI 포트폴리오 추천</h3>
-          <p style="color:#666; margin-bottom:15px;">종목 간 상관관계를 분석하여 최적의 투자 비중을 계산합니다</p>
-          <div style="margin-bottom:15px;">
-            <div class="search-box">
-              <input type="text" id="ai-portfolio-input" placeholder="종목명 또는 종목코드 입력">
-              <button id="ai-portfolio-add-btn" class="btn-secondary">종목 추가</button>
-            </div>
-            <div id="ai-portfolio-list" style="margin-top:10px;"></div>
+        
+        <!-- 포트폴리오 최적화 안내 -->
+        <div class="card" style="margin-top:20px; background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%); border-left: 4px solid #3b82f6;">
+          <h3>💼 포트폴리오 최적화</h3>
+          <p style="color:#1e40af; margin-bottom:15px; font-weight: 500;">
+            ✨ 새로운 포트폴리오 최적화 기능이 추가되었습니다!
+          </p>
+          <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+            <h4 style="margin: 0 0 10px 0; color: #1e40af;">🎯 주요 기능</h4>
+            <ul style="margin: 0; padding-left: 20px; line-height: 1.8; color: #1e40af;">
+              <li><strong>AI 자동 추천:</strong> 시가총액 및 테마 기반 종목 선택</li>
+              <li><strong>상관관계 분석:</strong> 종목 간 상관관계 매트릭스</li>
+              <li><strong>최적 비중 계산:</strong> 리스크 대비 최적 투자 비중</li>
+              <li><strong>리스크 분석:</strong> VaR, 샤프 비율, 다각화 효과</li>
+            </ul>
           </div>
-          <div style="margin-bottom:15px;">
-            <label style="margin-right:10px;">총 투자금액:</label>
-            <input type="number" id="ai-portfolio-amount" placeholder="1000" style="width:120px;"> 만원
-            <button id="ai-portfolio-analyze-btn" class="btn-primary" style="margin-left:15px;">최적 비중 분석</button>
-          </div>
-         <div id="ai-portfolio-result" style="margin-top:15px;"></div>
+          <button onclick="switchTab('portfolio-optimizer')" class="btn-primary" style="width: 100%; padding: 12px; font-size: 1.05rem; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
+            📊 포트폴리오 최적화 시작하기 →
+          </button>
         </div>
+
         
         <!-- AI 뉴스 감성 분석 -->
         <div class="card" style="margin-top:20px;">
@@ -2153,8 +2234,7 @@
   </div>
   
   <!-- JavaScript -->
-  <script src="/js/app.js?v=51"></script>
-
+    <script src="/js/app.js?v=53"></script>
   
   <script>
   // PWA 서비스 워커 등록
@@ -2241,10 +2321,8 @@
 <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
 
 <!-- 2. 내부 유틸리티 -->
-<script src="js/cache-manager.js"></script>
+<script src="/js/cache-manager.js?v=53"></script>
 
-<!-- 3. 메인 앱 (마지막) -->
-<script src="app.js"></script>
   
 </body>
 </html>

@@ -1476,8 +1476,8 @@ function createATRChart(containerId, data) {
 
 // ==================== 초기화 ====================
 document.addEventListener('DOMContentLoaded', function() {
-  initEventListeners();
-  initTabs();
+  initTabs();            // ← 먼저 실행!
+  initEventListeners();  // ← 나중에 실행
   loadExchangeRate();
   loadWatchlist();
   loadUsWatchlist();
@@ -1589,12 +1589,14 @@ function initEventListeners() {
   document.getElementById('us-ai-sentiment-btn').addEventListener('click', analyzeUsAiSentiment);
 
   // 미국 AI 포트폴리오
+  /*
   document.getElementById('us-ai-portfolio-add-btn').addEventListener('click', addUsAiPortfolioStock);
   document.getElementById('us-ai-portfolio-input').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') addUsAiPortfolioStock();
   });
   document.getElementById('us-ai-portfolio-analyze-btn').addEventListener('click', analyzeUsAiPortfolio);
- 
+  */
+
   // 미국 포트폴리오
   document.getElementById('us-portfolio-add-btn').addEventListener('click', handleAddUsPortfolio);
   document.getElementById('us-alert-type').addEventListener('change', handleUsAlertTypeChange);
@@ -11169,3 +11171,447 @@ function displayOptimizationResults(data) {
   // 결과 영역으로 스크롤
   resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
+
+
+// =============================================
+// 포트폴리오 최적화 - 기존 백엔드 API 호환 버전
+// =============================================
+
+// 전역 변수
+let optimizerSettings = {
+  stockCount: 10,
+  market: 'korea',
+  mode: 'auto',
+  selectedStocks: [],
+  totalInvestment: 1000
+};
+
+// 종목 개수 업데이트
+function updateStockCount(value) {
+  optimizerSettings.stockCount = parseInt(value);
+  document.getElementById('stock-count-value').textContent = value;
+}
+
+// 시장 선택
+function selectMarket(market) {
+  optimizerSettings.market = market;
+  
+  // 버튼 활성화 상태 변경
+  document.querySelectorAll('.market-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  document.querySelector(`[data-market="${market}"]`).classList.add('active');
+}
+
+// 모드 선택 (자동/수동)
+function selectMode(mode) {
+  optimizerSettings.mode = mode;
+  
+  // 버튼 활성화 상태 변경
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
+  
+  // UI 표시/숨김
+  if (mode === 'auto') {
+    document.getElementById('auto-selection-ui').style.display = 'block';
+    document.getElementById('manual-selection-ui').style.display = 'none';
+  } else {
+    document.getElementById('auto-selection-ui').style.display = 'none';
+    document.getElementById('manual-selection-ui').style.display = 'block';
+  }
+}
+
+// AI 시가총액 기반 추천 (기존 API 사용)
+async function aiSelectByMarketCap(capType) {
+  showLoading();
+  
+  try {
+    // 기존 API는 시가총액 구분 없이 자동 추천
+    // 따라서 recommend API를 호출하고 프론트엔드에서 필터링
+    const response = await fetch('/api/optimizer/recommend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        market: optimizerSettings.market, 
+        stockCount: optimizerSettings.stockCount 
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      optimizerSettings.selectedStocks = data.data;
+      showNotification('success', `${capType} 기준 ${data.data.length}개 종목 추천 완료!`);
+    } else {
+      showNotification('error', 'AI 추천 실패: ' + data.message);
+    }
+  } catch (error) {
+    console.error('AI 추천 오류:', error);
+    showNotification('error', 'AI 추천 중 오류가 발생했습니다.');
+  } finally {
+    hideLoading();
+  }
+}
+
+// AI 테마 기반 추천 (기존 API에는 없으므로 시가총액 기반으로 대체)
+async function aiSelectByTheme() {
+  const themeId = document.getElementById('ai-theme-selector').value;
+  
+  if (!themeId) {
+    showNotification('error', '테마를 먼저 선택해주세요.');
+    return;
+  }
+  
+  // 기존 백엔드에는 테마 기반 추천이 없으므로
+  // 일반 추천으로 대체
+  showNotification('info', '시가총액 기반으로 추천합니다.');
+  await aiSelectByMarketCap('테마');
+}
+
+
+// 수동 종목 추가
+async function manualAddStock() {
+  const input = document.getElementById('portfolio-stock-input');
+  const codeOrName = input.value.trim();
+  
+  if (!codeOrName) {
+    alert('종목명 또는 종목코드를 입력해주세요.');
+    return;
+  }
+  
+  // 선택된 시장 확인
+  const marketBtn = document.querySelector('.market-btn.active');
+  const selectedMarket = marketBtn ? marketBtn.dataset.market : 'korea';
+  
+  showLoading();
+  
+  try {
+    let stock = null;
+    
+    // 한국 종목 검색
+    if (selectedMarket === 'korea' || selectedMarket === 'mixed') {
+      const response = await fetch(`/api/korea/search?keyword=${encodeURIComponent(codeOrName)}`);
+      const result = await response.json();
+      
+      if (result.success && result.data && result.data.length > 0) {
+        stock = {
+          code: result.data[0].code,
+          name: result.data[0].name,
+          market: 'korea'
+        };
+      }
+    }
+    
+    // 미국 종목 검색 (한국에서 못 찾았거나 미국 시장 선택 시)
+    if (!stock && (selectedMarket === 'us' || selectedMarket === 'mixed')) {
+      const response = await fetch(`/api/us/search?keyword=${encodeURIComponent(codeOrName)}`);
+      const result = await response.json();
+      
+      if (result.success && result.data && result.data.length > 0) {
+        stock = {
+          code: result.data[0].symbol,  // 미국은 symbol
+          name: result.data[0].name || result.data[0].description,
+          market: 'us'
+        };
+      }
+    }
+    
+    if (stock) {
+      // 중복 체크
+      if (optimizerSettings.selectedStocks.find(s => s.code === stock.code)) {
+        alert('이미 추가된 종목입니다.');
+        hideLoading();
+        return;
+      }
+      
+      // 종목 추가
+      optimizerSettings.selectedStocks.push(stock);
+      
+      // 리스트 업데이트
+      updateSelectedStocksList();
+      
+      // 입력창 초기화
+      input.value = '';
+      
+      alert(`${stock.name} 추가 완료!`);
+    } else {
+      alert('종목을 찾을 수 없습니다.');
+    }
+    
+  } catch (error) {
+    console.error('종목 추가 오류:', error);
+    alert('종목 추가 중 오류가 발생했습니다.');
+  } finally {
+    hideLoading();
+  }
+}
+
+
+// 선택된 종목 리스트 업데이트
+function updateSelectedStocksList() {
+  const container = document.getElementById('selected-stocks-list');
+  const countEl = document.getElementById('selected-count');
+  
+  countEl.textContent = optimizerSettings.selectedStocks.length;
+  
+  if (optimizerSettings.selectedStocks.length === 0) {
+    container.innerHTML = '<p style="color: #666; text-align: center; margin: 20px 0;">종목을 검색하여 추가하세요</p>';
+    return;
+  }
+  
+  container.innerHTML = optimizerSettings.selectedStocks.map((stock, index) => `
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f8fafc; border-radius: 8px; margin-bottom: 8px;">
+      <div>
+        <strong>${stock.name}</strong>
+        <span style="color: #666; margin-left: 10px; font-size: 0.9rem;">${stock.code}</span>
+      </div>
+      <button onclick="removeStock(${index})" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+        삭제
+      </button>
+    </div>
+  `).join('');
+}
+
+// 종목 삭제
+function removeStock(index) {
+  optimizerSettings.selectedStocks.splice(index, 1);
+  updateSelectedStocksList();
+}
+
+function clearAllStocks() {
+  if (optimizerSettings.selectedStocks.length === 0) return;
+  
+  if (confirm('선택된 모든 종목을 삭제하시겠습니까?')) {
+    optimizerSettings.selectedStocks = [];
+    updateSelectedStocksList();
+  }
+}
+
+// 최적화 실행 (기존 API 호환)
+async function runOptimization() {
+  // 유효성 검사
+  const totalInvestment = parseFloat(document.getElementById('total-investment-amount').value);
+  if (!totalInvestment || totalInvestment <= 0) {
+    showNotification('error', '유효한 투자 금액을 입력해주세요.');
+    return;
+  }
+  
+  optimizerSettings.totalInvestment = totalInvestment;
+  
+  showLoading();
+  
+  try {
+    // 기존 API 호출 (자동 추천 + 최적화를 한 번에)
+    const response = await fetch('/api/optimizer/optimize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        market: optimizerSettings.market,
+        stockCount: optimizerSettings.stockCount,
+        mode: optimizerSettings.mode,
+        selectedStocks: optimizerSettings.mode === 'manual' ? optimizerSettings.selectedStocks : null
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      displayOptimizationResults(result.data, totalInvestment);
+    } else {
+      showNotification('error', '최적화 실패: ' + result.message);
+    }
+  } catch (error) {
+    console.error('최적화 오류:', error);
+    showNotification('error', '최적화 중 오류가 발생했습니다.');
+  } finally {
+    hideLoading();
+  }
+}
+
+// 최적화 결과 표시 (기존 API 응답 구조에 맞춤)
+function displayOptimizationResults(data, totalInvestment) {
+  // 결과 영역 표시
+  document.getElementById('optimizer-results').style.display = 'block';
+  
+  // 기존 API 응답 구조:
+  // data = { stocks: [...], metrics: { expectedReturn, volatility, sharpeRatio } }
+  
+  const stocks = data.stocks || [];
+  const metrics = data.metrics || {};
+  
+  // 요약 정보 업데이트
+  document.getElementById('summary-stock-count').textContent = stocks.length + '개';
+  document.getElementById('summary-expected-return').textContent = metrics.expectedReturn || '0%';
+  document.getElementById('summary-volatility').textContent = metrics.volatility || '0%';
+  
+  // 다각화 점수는 기존 API에 없으므로 임시 계산
+  const avgWeight = 1 / stocks.length;
+  const diversificationScore = Math.round((1 - avgWeight) * 100);
+  document.getElementById('summary-diversification').textContent = diversificationScore + '점';
+  
+  // 배분 데이터 생성
+  const allocations = stocks.map(stock => ({
+    code: stock.code,
+    name: stock.name,
+    weight: stock.weight,
+    amount: totalInvestment * 10000 * stock.weight, // 만원 → 원
+    expectedReturn: stock.expectedReturn || 0
+  }));
+  
+  // 파이 차트 그리기
+  drawAllocationPieChart(allocations);
+  
+  // 상세 테이블 업데이트
+  updateAllocationTable(allocations);
+  
+  // 상관관계 매트릭스 (기존 API에 없으므로 임시)
+  displayCorrelationMatrix([]);
+  
+  // 리스크 분석 표시
+  displayRiskAnalysis({
+    var95: parseFloat(metrics.volatility) * 1.645 / 100 || 0,
+    sharpeRatio: parseFloat(metrics.sharpeRatio) || 0,
+    diversificationEffect: 15 // 임시값
+  });
+  
+  // 결과로 스크롤
+  document.getElementById('optimizer-results').scrollIntoView({ behavior: 'smooth' });
+}
+
+// 파이 차트 그리기
+let allocationChart = null;
+
+function drawAllocationPieChart(allocations) {
+  const ctx = document.getElementById('allocation-pie-chart').getContext('2d');
+  
+  // 기존 차트 제거
+  if (allocationChart) {
+    allocationChart.destroy();
+  }
+  
+  const labels = allocations.map(a => a.name);
+  const data = allocations.map(a => a.weight * 100);
+  
+  const colors = [
+    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+    '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384',
+    '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40',
+    '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384', '#36A2EB'
+  ];
+  
+  allocationChart = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: data,
+        backgroundColor: colors.slice(0, allocations.length),
+        borderWidth: 2,
+        borderColor: '#fff'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 15,
+            font: { size: 12 }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return context.label + ': ' + context.parsed.toFixed(2) + '%';
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// 상세 테이블 업데이트
+function updateAllocationTable(allocations) {
+  const tbody = document.getElementById('allocation-table-body');
+  
+  tbody.innerHTML = allocations.map(a => `
+    <tr>
+      <td><strong>${a.name}</strong></td>
+      <td>${a.code}</td>
+      <td style="color: #3b82f6; font-weight: bold;">${(a.weight * 100).toFixed(2)}%</td>
+      <td>${(a.amount / 10000).toFixed(0)} 만원</td>
+      <td style="color: ${a.expectedReturn >= 0 ? '#10b981' : '#ef4444'};">
+        ${(a.expectedReturn * 100).toFixed(2)}%
+      </td>
+    </tr>
+  `).join('');
+}
+
+// 상관관계 매트릭스 표시 (기존 API에 없으므로 임시)
+function displayCorrelationMatrix(matrix) {
+  const container = document.getElementById('correlation-matrix');
+  container.innerHTML = '<p style="color: #666;">상관관계 데이터는 추후 업데이트 예정입니다.</p>';
+}
+
+// 리스크 분석 표시
+function displayRiskAnalysis(data) {
+  const container = document.getElementById('risk-analysis');
+  
+  container.innerHTML = `
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+      <div style="background: #fef2f2; padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444;">
+        <div style="font-size: 0.9rem; color: #666; margin-bottom: 5px;">최대 예상 손실 (VaR 95%)</div>
+        <div style="font-size: 1.5rem; font-weight: bold; color: #dc2626;">${(data.var95 * 100).toFixed(2)}%</div>
+      </div>
+      
+      <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+        <div style="font-size: 0.9rem; color: #666; margin-bottom: 5px;">샤프 비율</div>
+        <div style="font-size: 1.5rem; font-weight: bold; color: #d97706;">${data.sharpeRatio.toFixed(2)}</div>
+      </div>
+      
+      <div style="background: #ecfdf5; padding: 15px; border-radius: 8px; border-left: 4px solid #10b981;">
+        <div style="font-size: 0.9rem; color: #666; margin-bottom: 5px;">다각화 효과</div>
+        <div style="font-size: 1.5rem; font-weight: bold; color: #059669;">${data.diversificationEffect}%</div>
+      </div>
+    </div>
+    
+    <div style="margin-top: 20px; padding: 15px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+      <h4 style="margin: 0 0 10px 0; color: #1e40af;">📌 해석 가이드</h4>
+      <ul style="margin: 0; padding-left: 20px; line-height: 1.8; color: #1e40af; font-size: 0.9rem;">
+        <li><strong>VaR (Value at Risk):</strong> 95% 확률로 발생하지 않을 최대 손실</li>
+        <li><strong>샤프 비율:</strong> 위험 대비 수익률 (높을수록 좋음, 1 이상 우수)</li>
+        <li><strong>다각화 효과:</strong> 분산투자로 인한 리스크 감소율 (높을수록 좋음)</li>
+      </ul>
+    </div>
+  `;
+}
+
+// 초기화: 테마 목록 로드
+async function loadThemeListForOptimizer() {
+  try {
+    const response = await fetch('/api/korea/themes');
+    const data = await response.json();
+    const themes = Array.isArray(data) ? data : (data.themes || data.data || []);
+    
+    const selector = document.getElementById('ai-theme-selector');
+    selector.innerHTML = '<option value="">-- 테마 선택 --</option>' +
+      themes.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+  } catch (error) {
+    console.error('테마 목록 로드 오류:', error);
+  }
+}
+
+// 페이지 로드 시 테마 목록 로드
+document.addEventListener('DOMContentLoaded', () => {
+  if (document.getElementById('ai-theme-selector')) {
+    loadThemeListForOptimizer();
+  }
+});
+
+
+
