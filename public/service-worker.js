@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stock-pwa-v1';
+const CACHE_NAME = 'stock-pwa-v2';
 const urlsToCache = [
   '/',
   '/css/styles.css',
@@ -15,10 +15,18 @@ self.addEventListener('install', function(event) {
         return cache.addAll(urlsToCache);
       })
   );
+  self.skipWaiting();
 });
 
 // 요청 처리
 self.addEventListener('fetch', function(event) {
+  // API 요청은 캐시하지 않고 바로 네트워크로
+  if (event.request.url.includes('/api/')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+  
+  // 정적 파일만 캐시 사용
   event.respondWith(
     caches.match(event.request)
       .then(function(response) {
@@ -26,8 +34,7 @@ self.addEventListener('fetch', function(event) {
           return response;
         }
         return fetch(event.request);
-      }
-    )
+      })
   );
 });
 
@@ -44,4 +51,5 @@ self.addEventListener('activate', function(event) {
       );
     })
   );
+  self.clients.claim();
 });
