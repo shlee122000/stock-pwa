@@ -6270,6 +6270,7 @@ function displayAiDetailResult(data) {
   
   // 점수 상세
   html += getScoreBreakdown(newScore);
+  html += getEnhancedAIAnalysisHTML(data, data.name);
   
   // 지표 카드
   html += '<div class="indicators-grid" style="margin-top:15px;">';
@@ -6309,6 +6310,236 @@ function displayAiDetailResult(data) {
   
   html += '</div>';
   container.innerHTML = html;
+}
+
+
+// ========== Phase 5: AI 고도화 ==========
+
+// 기술적 지표 상세 분석
+function analyzeIndicators(data) {
+    var analysis = {
+        rsiScore: 0,
+        rsiStatus: '',
+        macdScore: 0,
+        macdStatus: '',
+        maScore: 0,
+        maStatus: '',
+        bollingerScore: 0,
+        bollingerStatus: '',
+        totalTechScore: 0,
+        signalStrength: 0,  // -2 ~ +2 (강한매도 ~ 강한매수)
+        signals: []
+    };
+    
+    // 1. RSI 분석 (0-25점)
+    var rsi = data.rsi || 50;
+    if (rsi <= 30) {
+        analysis.rsiScore = 25;
+        analysis.rsiStatus = '과매도 (매수 기회)';
+        analysis.signalStrength += 2;
+        analysis.signals.push('🟢 RSI 과매도 구간');
+    } else if (rsi <= 40) {
+        analysis.rsiScore = 20;
+        analysis.rsiStatus = '저점 접근';
+        analysis.signalStrength += 1;
+        analysis.signals.push('🟡 RSI 저점 접근');
+    } else if (rsi <= 60) {
+        analysis.rsiScore = 15;
+        analysis.rsiStatus = '중립';
+        analysis.signals.push('⚪ RSI 중립 구간');
+    } else if (rsi <= 70) {
+        analysis.rsiScore = 10;
+        analysis.rsiStatus = '고점 접근';
+        analysis.signalStrength -= 1;
+        analysis.signals.push('🟡 RSI 고점 접근');
+    } else {
+        analysis.rsiScore = 5;
+        analysis.rsiStatus = '과매수 (매도 고려)';
+        analysis.signalStrength -= 2;
+        analysis.signals.push('🔴 RSI 과매수 구간');
+    }
+    
+    // 2. MACD 분석 (0-25점)
+    var macd = data.macd || 0;
+    var macdSignal = data.macdSignal || 0;
+    var macdHist = macd - macdSignal;
+    
+    if (macdHist > 0 && macd > 0) {
+        analysis.macdScore = 25;
+        analysis.macdStatus = '강한 상승 추세';
+        analysis.signalStrength += 1;
+        analysis.signals.push('🟢 MACD 강한 상승');
+    } else if (macdHist > 0) {
+        analysis.macdScore = 20;
+        analysis.macdStatus = '상승 전환';
+        analysis.signalStrength += 0.5;
+        analysis.signals.push('🟡 MACD 상승 전환');
+    } else if (macdHist < 0 && macd < 0) {
+        analysis.macdScore = 5;
+        analysis.macdStatus = '강한 하락 추세';
+        analysis.signalStrength -= 1;
+        analysis.signals.push('🔴 MACD 강한 하락');
+    } else if (macdHist < 0) {
+        analysis.macdScore = 10;
+        analysis.macdStatus = '하락 전환';
+        analysis.signalStrength -= 0.5;
+        analysis.signals.push('🟡 MACD 하락 전환');
+    } else {
+        analysis.macdScore = 15;
+        analysis.macdStatus = '중립';
+    }
+    
+    // 3. 이동평균선 분석 (0-25점)
+    var price = data.currentPrice || data.close || 0;
+    var ma5 = data.ma5 || 0;
+    var ma20 = data.ma20 || 0;
+    var ma60 = data.ma60 || 0;
+    
+    if (price > ma5 && ma5 > ma20 && ma20 > ma60) {
+        analysis.maScore = 25;
+        analysis.maStatus = '완벽한 정배열';
+        analysis.signalStrength += 1;
+        analysis.signals.push('🟢 이평선 정배열');
+    } else if (price > ma20 && ma20 > ma60) {
+        analysis.maScore = 20;
+        analysis.maStatus = '상승 추세';
+        analysis.signalStrength += 0.5;
+    } else if (price > ma60) {
+        analysis.maScore = 15;
+        analysis.maStatus = '중기 지지';
+    } else if (price < ma5 && ma5 < ma20 && ma20 < ma60) {
+        analysis.maScore = 5;
+        analysis.maStatus = '완벽한 역배열';
+        analysis.signalStrength -= 1;
+        analysis.signals.push('🔴 이평선 역배열');
+    } else {
+        analysis.maScore = 10;
+        analysis.maStatus = '혼조';
+    }
+    
+    // 4. 볼린저밴드 분석 (0-25점)
+    var upper = data.bollingerUpper || 0;
+    var lower = data.bollingerLower || 0;
+    var middle = data.bollingerMiddle || data.ma20 || 0;
+    
+    if (upper > 0 && lower > 0 && price > 0) {
+        var position = (price - lower) / (upper - lower) * 100;
+        
+        if (position <= 20) {
+            analysis.bollingerScore = 25;
+            analysis.bollingerStatus = '하단 터치 (반등 기대)';
+            analysis.signalStrength += 1;
+            analysis.signals.push('🟢 볼린저 하단');
+        } else if (position <= 40) {
+            analysis.bollingerScore = 20;
+            analysis.bollingerStatus = '하단 접근';
+        } else if (position <= 60) {
+            analysis.bollingerScore = 15;
+            analysis.bollingerStatus = '중심선 부근';
+        } else if (position <= 80) {
+            analysis.bollingerScore = 10;
+            analysis.bollingerStatus = '상단 접근';
+        } else {
+            analysis.bollingerScore = 5;
+            analysis.bollingerStatus = '상단 터치 (조정 가능)';
+            analysis.signalStrength -= 1;
+            analysis.signals.push('🔴 볼린저 상단');
+        }
+    } else {
+        analysis.bollingerScore = 12;
+        analysis.bollingerStatus = '데이터 없음';
+    }
+    
+    // 총 기술 점수 (100점 만점)
+    analysis.totalTechScore = analysis.rsiScore + analysis.macdScore + analysis.maScore + analysis.bollingerScore;
+    
+    return analysis;
+}
+
+// 신호 강도 해석
+function getSignalStrengthText(strength) {
+    if (strength >= 3) return { text: '🟢🟢 강한 매수', color: '#16a34a', level: 5 };
+    if (strength >= 1.5) return { text: '🟢 매수', color: '#22c55e', level: 4 };
+    if (strength >= 0.5) return { text: '🟡 약한 매수', color: '#84cc16', level: 3 };
+    if (strength >= -0.5) return { text: '⚪ 중립', color: '#6b7280', level: 2 };
+    if (strength >= -1.5) return { text: '🟡 약한 매도', color: '#f59e0b', level: 2 };
+    if (strength >= -3) return { text: '🔴 매도', color: '#ef4444', level: 1 };
+    return { text: '🔴🔴 강한 매도', color: '#dc2626', level: 0 };
+}
+
+// AI 투자 코멘트 생성
+function generateAIComment(analysis, stockName) {
+    var comments = [];
+    var strength = getSignalStrengthText(analysis.signalStrength);
+    
+    // 메인 코멘트
+    if (analysis.signalStrength >= 2) {
+        comments.push(stockName + '은(는) 현재 <strong style="color:#16a34a">매수 적기</strong>로 판단됩니다.');
+    } else if (analysis.signalStrength >= 0.5) {
+        comments.push(stockName + '은(는) <strong style="color:#22c55e">긍정적인 흐름</strong>을 보이고 있습니다.');
+    } else if (analysis.signalStrength >= -0.5) {
+        comments.push(stockName + '은(는) 현재 <strong style="color:#6b7280">관망</strong>이 필요합니다.');
+    } else if (analysis.signalStrength >= -2) {
+        comments.push(stockName + '은(는) <strong style="color:#f59e0b">주의</strong>가 필요한 구간입니다.');
+    } else {
+        comments.push(stockName + '은(는) <strong style="color:#ef4444">매도 고려</strong>가 필요합니다.');
+    }
+    
+    // 상세 코멘트
+    if (analysis.rsiStatus.includes('과매도')) {
+        comments.push('RSI가 과매도 구간으로 반등 가능성이 높습니다.');
+    } else if (analysis.rsiStatus.includes('과매수')) {
+        comments.push('RSI가 과매수 구간으로 단기 조정 가능성이 있습니다.');
+    }
+    
+    if (analysis.maStatus === '완벽한 정배열') {
+        comments.push('이동평균선이 완벽한 정배열로 상승 추세가 강합니다.');
+    } else if (analysis.maStatus === '완벽한 역배열') {
+        comments.push('이동평균선이 역배열로 하락 추세입니다.');
+    }
+    
+    return {
+        strength: strength,
+        comments: comments,
+        signals: analysis.signals
+    };
+}
+
+// AI 가격 예측
+function predictPrice(data) {
+    var price = data.currentPrice || data.close || 0;
+    var atr = data.atr || price * 0.02;
+    var rsi = data.rsi || 50;
+    var ma20 = data.ma20 || price;
+    var ma60 = data.ma60 || price;
+    
+    var prediction = {
+        shortTerm: { min: 0, max: 0, direction: '' },  // 1주일
+        midTerm: { min: 0, max: 0, direction: '' }     // 1개월
+    };
+    
+    // 추세 강도 계산
+    var trendStrength = 0;
+    if (price > ma20) trendStrength += 1;
+    if (price > ma60) trendStrength += 1;
+    if (ma20 > ma60) trendStrength += 1;
+    if (rsi < 50) trendStrength -= 0.5;
+    if (rsi > 70) trendStrength -= 1;
+    if (rsi < 30) trendStrength += 1;
+    
+    // 단기 예측 (1주일)
+    var shortMultiplier = trendStrength > 0 ? 1.5 : (trendStrength < 0 ? -1 : 0.5);
+    prediction.shortTerm.min = Math.round(price - atr * 1.5);
+    prediction.shortTerm.max = Math.round(price + atr * 2 * Math.max(0.5, shortMultiplier));
+    prediction.shortTerm.direction = trendStrength > 1 ? '상승' : (trendStrength < -1 ? '하락' : '보합');
+    
+    // 중기 예측 (1개월)
+    var midMultiplier = trendStrength > 0 ? 2 : (trendStrength < 0 ? -1.5 : 1);
+    prediction.midTerm.min = Math.round(price - atr * 3);
+    prediction.midTerm.max = Math.round(price + atr * 4 * Math.max(0.5, midMultiplier));
+    prediction.midTerm.direction = trendStrength > 0.5 ? '상승' : (trendStrength < -0.5 ? '하락' : '보합');
+    
+    return prediction;
 }
 
 
