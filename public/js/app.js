@@ -6456,6 +6456,95 @@ function analyzeIndicators(data) {
     return analysis;
 }
 
+
+// AI 상세 분석 결과 HTML 생성
+function getEnhancedAIAnalysisHTML(data, stockName) {
+    var analysis = analyzeIndicators(data);
+    var aiComment = generateAIComment(analysis, stockName);
+    var prediction = predictPrice(data);
+    var strength = aiComment.strength;
+    
+    var html = '';
+    
+    // 1. 신호 강도 표시
+    html += '<div style="background:linear-gradient(135deg, ' + strength.color + '22, ' + strength.color + '11); padding:15px; border-radius:12px; margin:15px 0; border-left:4px solid ' + strength.color + ';">';
+    html += '<div style="font-size:1.3rem; font-weight:bold; color:' + strength.color + ';">' + strength.text + '</div>';
+    html += '<div style="margin-top:8px; color:#374151;">' + aiComment.comments[0] + '</div>';
+    html += '</div>';
+    
+    // 2. 기술 지표 상세
+    html += '<div style="background:#f8fafc; padding:15px; border-radius:12px; margin:15px 0;">';
+    html += '<h4 style="margin:0 0 12px 0; color:#1e293b;">📊 기술 지표 분석</h4>';
+    html += '<table style="width:100%; font-size:0.9rem;">';
+    
+    // RSI
+    html += '<tr><td style="padding:8px 0;">RSI (14)</td>';
+    html += '<td style="text-align:center;"><strong>' + (data.rsi ? data.rsi.toFixed(1) : '--') + '</strong></td>';
+    html += '<td style="text-align:right; color:' + (analysis.rsiScore >= 20 ? '#16a34a' : analysis.rsiScore <= 10 ? '#ef4444' : '#6b7280') + ';">' + analysis.rsiStatus + '</td></tr>';
+    
+    // MACD
+    html += '<tr><td style="padding:8px 0;">MACD</td>';
+    html += '<td style="text-align:center;"><strong>' + (data.macd ? data.macd.toFixed(2) : '--') + '</strong></td>';
+    html += '<td style="text-align:right; color:' + (analysis.macdScore >= 20 ? '#16a34a' : analysis.macdScore <= 10 ? '#ef4444' : '#6b7280') + ';">' + analysis.macdStatus + '</td></tr>';
+    
+    // 이동평균
+    html += '<tr><td style="padding:8px 0;">이동평균</td>';
+    html += '<td style="text-align:center;">--</td>';
+    html += '<td style="text-align:right; color:' + (analysis.maScore >= 20 ? '#16a34a' : analysis.maScore <= 10 ? '#ef4444' : '#6b7280') + ';">' + analysis.maStatus + '</td></tr>';
+    
+    // 볼린저
+    html += '<tr><td style="padding:8px 0;">볼린저밴드</td>';
+    html += '<td style="text-align:center;">--</td>';
+    html += '<td style="text-align:right; color:' + (analysis.bollingerScore >= 20 ? '#16a34a' : analysis.bollingerScore <= 10 ? '#ef4444' : '#6b7280') + ';">' + analysis.bollingerStatus + '</td></tr>';
+    
+    html += '</table>';
+    html += '<div style="margin-top:10px; text-align:right; font-weight:bold; color:#3b82f6;">기술 점수: ' + analysis.totalTechScore + ' / 100점</div>';
+    html += '</div>';
+    
+    // 3. AI 신호 목록
+    if (analysis.signals.length > 0) {
+        html += '<div style="background:#fefce8; padding:12px; border-radius:8px; margin:15px 0;">';
+        html += '<strong>🎯 주요 신호:</strong><br>';
+        analysis.signals.forEach(function(signal) {
+            html += '<span style="display:inline-block; margin:4px 8px 4px 0; padding:4px 8px; background:#fff; border-radius:4px; font-size:0.85rem;">' + signal + '</span>';
+        });
+        html += '</div>';
+    }
+    
+    // 4. AI 가격 예측
+    var price = data.currentPrice || data.close || data.price || 0;
+    html += '<div style="background:#f0fdf4; padding:15px; border-radius:12px; margin:15px 0;">';
+    html += '<h4 style="margin:0 0 12px 0; color:#166534;">🔮 AI 가격 예측</h4>';
+    html += '<table style="width:100%; font-size:0.9rem;">';
+    
+    // 단기 예측
+    html += '<tr><td style="padding:8px 0;"><strong>단기 (1주)</strong></td>';
+    html += '<td style="text-align:right;">' + prediction.shortTerm.min.toLocaleString() + ' ~ ' + prediction.shortTerm.max.toLocaleString() + '원</td>';
+    html += '<td style="text-align:right; width:60px; color:' + (prediction.shortTerm.direction === '상승' ? '#16a34a' : prediction.shortTerm.direction === '하락' ? '#ef4444' : '#6b7280') + ';">' + prediction.shortTerm.direction + '</td></tr>';
+    
+    // 중기 예측
+    html += '<tr><td style="padding:8px 0;"><strong>중기 (1개월)</strong></td>';
+    html += '<td style="text-align:right;">' + prediction.midTerm.min.toLocaleString() + ' ~ ' + prediction.midTerm.max.toLocaleString() + '원</td>';
+    html += '<td style="text-align:right; width:60px; color:' + (prediction.midTerm.direction === '상승' ? '#16a34a' : prediction.midTerm.direction === '하락' ? '#ef4444' : '#6b7280') + ';">' + prediction.midTerm.direction + '</td></tr>';
+    
+    html += '</table>';
+    html += '<p style="margin:10px 0 0 0; font-size:0.8rem; color:#6b7280;">※ ATR 기반 예측으로 참고용입니다.</p>';
+    html += '</div>';
+    
+    // 5. AI 코멘트
+    if (aiComment.comments.length > 1) {
+        html += '<div style="background:#eff6ff; padding:12px; border-radius:8px; margin:15px 0;">';
+        html += '<strong>💡 AI 분석 코멘트:</strong><ul style="margin:8px 0 0 0; padding-left:20px;">';
+        for (var i = 1; i < aiComment.comments.length; i++) {
+            html += '<li style="margin:4px 0;">' + aiComment.comments[i] + '</li>';
+        }
+        html += '</ul></div>';
+    }
+    
+    return html;
+}
+
+
 // 신호 강도 해석
 function getSignalStrengthText(strength) {
     if (strength >= 3) return { text: '🟢🟢 강한 매수', color: '#16a34a', level: 5 };
