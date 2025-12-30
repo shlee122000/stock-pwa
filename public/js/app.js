@@ -11709,6 +11709,8 @@ function checkKakaoLoginStatus() {
     if (token && userInfo) {
         Kakao.Auth.setAccessToken(token);
         updateKakaoUI(true, JSON.parse(userInfo));
+        loadNotificationSettings();
+        initNotificationListeners();
     } else {
         // OAuth 콜백 확인
         handleKakaoCallback();
@@ -11772,3 +11774,135 @@ async function testKakaoMessage() {
 }
 
 
+// ========== 알림 설정 저장/불러오기 ==========
+
+// 알림 설정 저장
+function saveNotificationSettings() {
+    const settings = {
+        priceTarget: document.getElementById('alertPriceTarget')?.checked || false,
+        bigChange: document.getElementById('alertBigChange')?.checked || false,
+        signal: document.getElementById('alertSignal')?.checked || false
+    };
+    localStorage.setItem('kakaoNotificationSettings', JSON.stringify(settings));
+    console.log('알림 설정 저장됨:', settings);
+}
+
+// 알림 설정 불러오기
+function loadNotificationSettings() {
+    const saved = localStorage.getItem('kakaoNotificationSettings');
+    if (saved) {
+        const settings = JSON.parse(saved);
+        const priceTarget = document.getElementById('alertPriceTarget');
+        const bigChange = document.getElementById('alertBigChange');
+        const signal = document.getElementById('alertSignal');
+        
+        if (priceTarget) priceTarget.checked = settings.priceTarget;
+        if (bigChange) bigChange.checked = settings.bigChange;
+        if (signal) signal.checked = settings.signal;
+        
+        console.log('알림 설정 불러옴:', settings);
+    }
+}
+
+// 체크박스 변경 시 자동 저장
+function initNotificationListeners() {
+    const checkboxes = ['alertPriceTarget', 'alertBigChange', 'alertSignal'];
+    checkboxes.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('change', saveNotificationSettings);
+        }
+    });
+}
+
+
+// ========== 실제 알림 발송 ==========
+
+// 카카오톡 알림 보내기 (공통 함수)
+async function sendKakaoNotification(title, message, stockCode = '') {
+    if (!Kakao.Auth.getAccessToken()) {
+        console.log('카카오 로그인 필요 - 알림 미발송');
+        return false;
+    }
+    
+    try {
+        await Kakao.API.request({
+            url: '/v2/api/talk/memo/default/send',
+            data: {
+                template_object: {
+                    object_type: 'text',
+                    text: `${title}\n\n${message}`,
+                    link: {
+                        web_url: stockCode 
+                            ? `https://stock-pwa.vercel.app?stock=${stockCode}` 
+                            : 'https://stock-pwa.vercel.app',
+                        mobile_web_url: stockCode 
+                            ? `https://stock-pwa.vercel.app?stock=${stockCode}` 
+                            : 'https://stock-pwa.vercel.app'
+                    },
+                    button_title: '앱에서 확인'
+                }
+            }
+        });
+        console.log('카카오톡 알림 발송 성공:', title);
+        return true;
+    } catch (error) {
+        console.error('카카오톡 알림 발송 실패:', error);
+        return false;
+    }
+}
+
+// 목표가 도달 알림
+async function sendPriceTargetAlert(stockName, stockCode, currentPrice, targetPrice) {
+    const settings = JSON.parse(localStorage.getItem('kakaoNotificationSettings') || '{}');
+    if (!settings.priceTarget) return;
+    
+    const title = `🎯 목표가 도달! ${stockName}`;
+    const message = `현재가: ${currentPrice.toLocaleString()}원\n목표가: ${targetPrice.toLocaleString()}원\n\n목표가에 도달했습니다!`;
+    
+    await sendKakaoNotification(title, message, stockCode);
+}
+
+// 급등/급락 알림 (±5% 이상)
+async function sendBigChangeAlert(stockName, stockCode, currentPrice, changePercent) {
+    const settings = JSON.parse(localStorage.getItem('kakaoNotificationSettings') || '{}');
+    if (!settings.bigChange) return;
+    
+    const direction = changePercent > 0 ? '📈 급등' : '📉 급락';
+    const title = `${direction} 알림! ${stockName}`;
+    const message = `현재가: ${currentPrice.toLocaleString()}원\n등락률: ${changePercent > 0 ? '+' : ''}${changePercent.toFixed(2)}%\n\n${Math.abs(changePercent).toFixed(1)}% ${changePercent > 0 ? '상승' : '하락'}했습니다!`;
+    
+    await sendKakaoNotification(title, message, stockCode);
+}
+
+// 매수/매도 신호 알림
+async function sendSignalAlert(stockName, stockCode, signalType, reason) {
+    const settings = JSON.parse(localStorage.getItem('kakaoNotificationSettings') || '{}');
+    if (!settings.signal) return;
+    
+    const emoji = signalType === '매수' ? '🟢' : '🔴';
+    const title = `${emoji} ${signalType} 신호! ${stockName}`;
+    const message = `신호: ${signalType}\n근거: ${reason}\n\n기술적 분석 결과입니다.`;
+    
+    await sendKakaoNotification(title, message, stockCode);
+}
+
+// 포트폴리오 모니터링 (주기적 체크)
+async function checkPortfolioAlerts() {
+    const settings = JSON.parse(localStorage.getItem('kakaoNotificationSettings') || '{}');
+    
+    // 알림 설정이 모두 꺼져있으면 스킵
+    if (!settings.priceTarget && !settings.bigChange && !settings.signal) {
+        return;
+    }
+    
+    // 카카오 로그인 안되어 있으면 스킵
+    if (!Kakao.Auth.getAccessToken()) {
+        return;
+    }
+    
+    console.log('포트폴리오 알림 체크 중...');
+    
+    // 여기에 실제 포트폴리오 데이터 체크 로직 추가
+    // 예: 보유 종목의 현재가 조회 후 조건 확인
+}
