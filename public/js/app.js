@@ -20,6 +20,15 @@ document.addEventListener('DOMContentLoaded', () => {
 // API 기본 URL
 const API_BASE = '';
 
+// 포트폴리오 최적화 설정 (전역)
+var optimizerSettings = {
+  stockCount: 10,
+  market: 'korea',
+  mode: 'auto',
+  selectedStocks: [],
+  totalInvestment: 1000
+};
+
 // 종목코드 찾기 (이름 또는 코드 입력 가능)
 async function findStockCode(input) {
   // 이미 6자리 숫자면 그대로 반환
@@ -1495,9 +1504,10 @@ function createATRChart(containerId, data) {
 
 // ==================== 초기화 ====================
 document.addEventListener('DOMContentLoaded', function() {
-  initTabs();            // ← 먼저 실행!
+  initTabs(); 
+  loadExchangeRate();          // ← 먼저 실행!
   initEventListeners();  // ← 나중에 실행
-  loadExchangeRate();
+ 
   loadWatchlist();
   loadUsWatchlist();
   loadPortfolio();
@@ -1690,11 +1700,15 @@ function initEventListeners() {
     if (e.key === 'Enter') analyzeAiPattern();
   });
 
-  // AI 포트폴리오 추천
-  document.getElementById('ai-portfolio-add-btn').addEventListener('click', addAiPortfolioStock);
-  document.getElementById('ai-portfolio-input').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') addAiPortfolioStock();
-  });
+ // AI 포트폴리오 추천
+  if (document.getElementById('ai-portfolio-add-btn')) {
+    document.getElementById('ai-portfolio-add-btn').addEventListener('click', addAiPortfolioStock);
+  }
+  if (document.getElementById('ai-portfolio-input')) {
+    document.getElementById('ai-portfolio-input').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') addAiPortfolioStock();
+    });
+  }
   document.getElementById('ai-portfolio-analyze-btn').addEventListener('click', analyzeAiPortfolio);
 
   // AI 뉴스 감성 분석
@@ -1915,7 +1929,8 @@ async function apiCall(endpoint, options, useCache = true) {
 // ==================== 환율 ====================
 async function loadExchangeRate() {
   try {
-    var result = await apiCall('/api/korea/exchange');
+    var response = await fetch('/api/korea/exchange');
+    var result = await response.json();
     if (result.success && result.data) {
       var data = result.data;
       var html = '';
@@ -10299,7 +10314,17 @@ function initNotificationContainer() {
 }
 
 // 알림 팝업 표시
-function showNotification(options) {
+function showNotification(options, message) {
+  // 문자열 2개로 호출된 경우 객체로 변환
+  if (typeof options === 'string') {
+    options = {
+      type: options,
+      title: '알림',
+      stockName: '',
+      message: message || ''
+    };
+  }
+  
   initNotificationContainer();
   
   var container = document.getElementById('notification-container');
@@ -11173,10 +11198,10 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 //최적화 실행 버튼
-const optimizeBtn = document.getElementById('optimize-btn');
-if (optimizeBtn) {
-optimizeBtn.addEventListener('click', runPortfolioOptimization);
-}
+//const optimizeBtn = document.getElementById('optimize-btn');
+//if (optimizeBtn) {
+//optimizeBtn.addEventListener('click', runPortfolioOptimization);
+//}
 
 
 // 선택된 종목 목록
@@ -11516,14 +11541,10 @@ function displayOptimizationResults(data) {
 // 포트폴리오 최적화 - 기존 백엔드 API 호환 버전
 // =============================================
 
-// 전역 변수
-let optimizerSettings = {
-  stockCount: 10,
-  market: 'korea',
-  mode: 'auto',
-  selectedStocks: [],
-  totalInvestment: 1000
-};
+// 전역 변수는 위로 옮김
+
+
+window.optimizerSettings = optimizerSettings;  // ← 이 줄 추가!
 
 // 종목 개수 업데이트
 function updateStockCount(value) {
@@ -11567,8 +11588,6 @@ async function aiSelectByMarketCap(capType) {
   showLoading();
   
   try {
-    // 기존 API는 시가총액 구분 없이 자동 추천
-    // 따라서 recommend API를 호출하고 프론트엔드에서 필터링
     const response = await fetch('/api/optimizer/recommend', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -11582,31 +11601,52 @@ async function aiSelectByMarketCap(capType) {
     
     if (data.success) {
       optimizerSettings.selectedStocks = data.data;
-      showNotification('success', `${capType} 기준 ${data.data.length}개 종목 추천 완료!`);
+      alert(capType + ' 기준 ' + data.data.length + '개 종목 추천 완료!');
     } else {
-      showNotification('error', 'AI 추천 실패: ' + data.message);
+      alert('AI 추천 실패: ' + data.message);
     }
   } catch (error) {
     console.error('AI 추천 오류:', error);
-    showNotification('error', 'AI 추천 중 오류가 발생했습니다.');
+    alert('AI 추천 중 오류가 발생했습니다.');
   } finally {
     hideLoading();
   }
 }
 
-// AI 테마 기반 추천 (기존 API에는 없으므로 시가총액 기반으로 대체)
+// AI 테마 기반 추천
 async function aiSelectByTheme() {
   const themeId = document.getElementById('ai-theme-selector').value;
   
   if (!themeId) {
-    showNotification('error', '테마를 먼저 선택해주세요.');
+    alert('테마를 먼저 선택해주세요.');
     return;
   }
   
-  // 기존 백엔드에는 테마 기반 추천이 없으므로
-  // 일반 추천으로 대체
-  showNotification('info', '시가총액 기반으로 추천합니다.');
-  await aiSelectByMarketCap('테마');
+  showLoading();
+  
+  try {
+    const response = await fetch('/api/korea/theme/' + themeId);
+    const data = await response.json();
+    
+    if (data.success && data.data && data.data.length > 0) {
+      // 테마 종목을 optimizerSettings에 저장
+      optimizerSettings.selectedStocks = data.data.map(stock => ({
+        code: stock.code,
+        name: stock.name,
+        market: 'korea'
+      }));
+      optimizerSettings.mode = 'manual';  // 이 줄 추가!
+      
+      alert('테마 기준 ' + data.data.length + '개 종목 추천 완료!');
+    } else {
+      alert('테마 종목을 불러올 수 없습니다.');
+    }
+  } catch (error) {
+    console.error('테마 추천 오류:', error);
+    alert('테마 추천 중 오류가 발생했습니다.');
+  } finally {
+    hideLoading();
+  }
 }
 
 
@@ -11728,6 +11768,8 @@ function clearAllStocks() {
   }
 }
 
+
+
 // 최적화 실행 (기존 API 호환)
 async function runOptimization() {
   // 유효성 검사
@@ -11768,6 +11810,8 @@ async function runOptimization() {
     hideLoading();
   }
 }
+
+
 
 // 최적화 결과 표시 (기존 API 응답 구조에 맞춤)
 function displayOptimizationResults(data, totalInvestment) {
@@ -11939,7 +11983,7 @@ async function loadThemeListForOptimizer() {
     
     const selector = document.getElementById('ai-theme-selector');
     selector.innerHTML = '<option value="">-- 테마 선택 --</option>' +
-      themes.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+    themes.map(t => `<option value="${t.code}">${t.name}</option>`).join('');
   } catch (error) {
     console.error('테마 목록 로드 오류:', error);
   }
