@@ -11588,22 +11588,29 @@ async function aiSelectByMarketCap(capType) {
   showLoading();
   
   try {
-    const response = await fetch('/api/optimizer/recommend', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        market: optimizerSettings.market, 
-        stockCount: optimizerSettings.stockCount 
-      })
-    });
+    // capType에 따라 API 경로 결정
+    let capIndex = 0;  // 기본 대형주
+    if (capType === 'mid') capIndex = 1;
+    else if (capType === 'small') capIndex = 2;
     
+    const response = await fetch('/api/korea/market-cap/' + capIndex);
     const data = await response.json();
     
-    if (data.success) {
-      optimizerSettings.selectedStocks = data.data;
-      alert(capType + ' 기준 ' + data.data.length + '개 종목 추천 완료!');
+    if (data.success && data.data && data.data.length > 0) {
+      // 설정된 종목 개수만큼 선택
+      const count = optimizerSettings.stockCount || 10;
+      const selectedStocks = data.data.slice(0, count).map(stock => ({
+        code: stock.code,
+        name: stock.name,
+        market: 'korea'
+      }));
+      
+      optimizerSettings.selectedStocks = selectedStocks;
+      optimizerSettings.mode = 'manual';
+      
+      alert(capType + ' 기준 ' + selectedStocks.length + '개 종목 추천 완료!');
     } else {
-      alert('AI 추천 실패: ' + data.message);
+      alert('해당 시가총액 종목을 찾을 수 없습니다.');
     }
   } catch (error) {
     console.error('AI 추천 오류:', error);
