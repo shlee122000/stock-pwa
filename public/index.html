@@ -16,7 +16,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <!-- CSS -->
-  <link rel="stylesheet" href="/css/styles.css?v=54">
+  <link rel="stylesheet" href="/css/styles.css?v=57">
 </head>
 <body>
   <div class="app-container">
@@ -1062,11 +1062,23 @@
           <h3>📡 시장 스캐너</h3>
           <p style="color: #666; margin-bottom: 15px;">시가총액 상위 50개 종목을 분석하여 매수/매도 신호를 찾습니다.</p>
           
-          <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+          <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;">
             <button id="run-scanner-btn" onclick="runMarketScanner()" 
                     style="padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
               🔍 시장 스캔 시작
             </button>
+            
+            <select id="auto-scan-interval" style="padding: 10px; border-radius: 6px; border: 1px solid #ddd;">
+              <option value="10">10분마다</option>
+              <option value="30" selected>30분마다</option>
+              <option value="60">1시간마다</option>
+            </select>
+            
+            <button id="auto-scan-btn" onclick="toggleAutoScan()" 
+                    style="padding: 12px 24px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+              ▶️ 자동 스캔 시작
+            </button>
+            
             <span id="scanner-status" style="line-height: 45px; color: #666;"></span>
           </div>
           
@@ -2364,7 +2376,7 @@
   </div>
   
   <!-- JavaScript -->
-    <script src="/js/app.js?v=54"></script>
+    <script src="/js/app.js?v=57"></script>
   
 
   <!--  
@@ -2455,7 +2467,7 @@
 <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
 
 <!-- 2. 내부 유틸리티 -->
-<script src="/js/cache-manager.js?v=54"></script>
+<script src="/js/cache-manager.js?v=57"></script>
 
   
 </body>

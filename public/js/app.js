@@ -12462,3 +12462,63 @@ function sendScannerNotification(buySignals, sellSignals) {
     sendKakaoMessage(message);
   }
 }
+
+
+// ==================== 자동 스캔 ====================
+let autoScanTimer = null;
+let isAutoScanning = false;
+
+function toggleAutoScan() {
+  if (isAutoScanning) {
+    stopAutoScan();
+  } else {
+    startAutoScan();
+  }
+}
+
+function startAutoScan() {
+  const intervalSelect = document.getElementById('auto-scan-interval');
+  const autoScanBtn = document.getElementById('auto-scan-btn');
+  const statusEl = document.getElementById('scanner-status');
+  
+  const minutes = parseInt(intervalSelect.value);
+  const milliseconds = minutes * 60 * 1000;
+  
+  isAutoScanning = true;
+  autoScanBtn.innerHTML = '⏹️ 자동 스캔 중지';
+  autoScanBtn.style.background = '#ef4444';
+  intervalSelect.disabled = true;
+  
+  // 즉시 한 번 실행
+  runMarketScanner();
+  
+  // 주기적 실행
+  autoScanTimer = setInterval(function() {
+    console.log('자동 스캔 실행:', new Date().toLocaleString('ko-KR'));
+    runMarketScanner();
+  }, milliseconds);
+  
+  statusEl.textContent = minutes + '분마다 자동 스캔 중...';
+  
+  alert('자동 스캔이 시작되었습니다!\n' + minutes + '분마다 시장을 스캔합니다.');
+}
+
+function stopAutoScan() {
+  const intervalSelect = document.getElementById('auto-scan-interval');
+  const autoScanBtn = document.getElementById('auto-scan-btn');
+  const statusEl = document.getElementById('scanner-status');
+  
+  if (autoScanTimer) {
+    clearInterval(autoScanTimer);
+    autoScanTimer = null;
+  }
+  
+  isAutoScanning = false;
+  autoScanBtn.innerHTML = '▶️ 자동 스캔 시작';
+  autoScanBtn.style.background = '#10b981';
+  intervalSelect.disabled = false;
+  
+  statusEl.textContent = '자동 스캔 중지됨';
+  
+  alert('자동 스캔이 중지되었습니다.');
+}
