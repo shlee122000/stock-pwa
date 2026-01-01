@@ -16,7 +16,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <!-- CSS -->
-  <link rel="stylesheet" href="/css/styles.css?v=53">
+  <link rel="stylesheet" href="/css/styles.css?v=54">
 </head>
 <body>
   <div class="app-container">
@@ -1056,8 +1056,68 @@
         </div>
         <div id="signal-result" class="result-area"></div>
         <div id="signal-recommendation-result" class="result-area" style="margin-top:20px;"></div>
-      </section>
-      
+
+        <!-- 시장 스캐너 -->
+        <div class="card" style="margin-top: 30px; border: 2px solid #667eea;">
+          <h3>📡 시장 스캐너</h3>
+          <p style="color: #666; margin-bottom: 15px;">시가총액 상위 50개 종목을 분석하여 매수/매도 신호를 찾습니다.</p>
+          
+          <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <button id="run-scanner-btn" onclick="runMarketScanner()" 
+                    style="padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+              🔍 시장 스캔 시작
+            </button>
+            <span id="scanner-status" style="line-height: 45px; color: #666;"></span>
+          </div>
+          
+          <!-- 알림 설정 - scanner-results 바깥! -->
+          <div style="margin-bottom: 20px; padding: 15px; background: #f8fafc; border-radius: 8px;">
+            <h4 style="margin: 0 0 10px 0;">🔔 신호 알림 설정</h4>
+            <label style="display: block; margin: 8px 0; cursor: pointer;">
+              <input type="checkbox" id="scanner-push-notify" style="margin-right: 8px;">
+              브라우저 푸시 알림
+            </label>
+            <label style="display: block; margin: 8px 0; cursor: pointer;">
+              <input type="checkbox" id="scanner-kakao-notify" style="margin-right: 8px;">
+              카카오톡 알림
+            </label>
+            <button onclick="saveScannerNotifySettings()" 
+                    style="margin-top: 10px; padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer;">
+              💾 설정 저장
+            </button>
+            <button onclick="testScannerNotify()" 
+                    style="margin-top: 10px; margin-left: 10px; padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer;">
+              🔔 테스트 알림
+            </button>
+          </div>
+          
+          <!-- 스캔 결과 - 스캔 후에만 표시 -->
+          <div id="scanner-results" style="display: none;">
+            <!-- 매수 신호 -->
+            <div style="margin-bottom: 20px;">
+              <h4 style="color: #10b981; margin-bottom: 10px;">📈 매수 신호 종목</h4>
+              <div id="buy-signals-list" style="background: #f0fdf4; padding: 15px; border-radius: 8px; min-height: 50px;">
+                결과 없음
+              </div>
+            </div>
+            
+            <!-- 매도 신호 -->
+            <div>
+              <h4 style="color: #ef4444; margin-bottom: 10px;">📉 매도 신호 종목</h4>
+              <div id="sell-signals-list" style="background: #fef2f2; padding: 15px; border-radius: 8px; min-height: 50px;">
+                결과 없음
+              </div>
+            </div>
+            
+            <p id="scanner-timestamp" style="margin-top: 15px; font-size: 0.85rem; color: #999;"></p>
+          </div>
+        </div>            
+            <p id="scanner-timestamp" style="margin-top: 15px; font-size: 0.85rem; color: #999;"></p>   
+          </div>
+        </div>
+
+        </section>
+              
       <!-- 관심 종목 -->
       <section id="tab-watchlist" class="tab-content">
         <h2>⭐ 관심 종목</h2>
@@ -2395,7 +2455,7 @@
 <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
 
 <!-- 2. 내부 유틸리티 -->
-<script src="/js/cache-manager.js?v=53"></script>
+<script src="/js/cache-manager.js?v=54"></script>
 
   
 </body>

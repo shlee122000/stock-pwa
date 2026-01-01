@@ -1517,6 +1517,7 @@ document.addEventListener('DOMContentLoaded', function() {
   loadUsPortfolio();
   loadUsAlertList();
   loadAiThemeList();
+  loadScannerNotifySettings();
   
   // 브라우저 알림 권한 요청
   requestNotificationPermission();
@@ -12276,4 +12277,188 @@ async function checkPortfolioAlerts() {
     
     // 여기에 실제 포트폴리오 데이터 체크 로직 추가
     // 예: 보유 종목의 현재가 조회 후 조건 확인
+}
+
+// ==================== 시장 스캐너 ====================
+async function runMarketScanner() {
+  const statusEl = document.getElementById('scanner-status');
+  const resultsEl = document.getElementById('scanner-results');
+  const buyListEl = document.getElementById('buy-signals-list');
+  const sellListEl = document.getElementById('sell-signals-list');
+  const timestampEl = document.getElementById('scanner-timestamp');
+  
+  statusEl.textContent = '스캔 중... (약 1-2분 소요)';
+  resultsEl.style.display = 'none';
+  
+  try {
+    const response = await fetch('/api/analysis/scanner');
+    const data = await response.json();
+    
+    if (data.success) {
+      const { buySignals, sellSignals, scannedCount, timestamp } = data.data;
+      
+      // 매수 신호 표시
+      if (buySignals.length > 0) {
+        buyListEl.innerHTML = buySignals.map(stock => 
+          '<div style="padding: 10px; margin-bottom: 8px; background: white; border-radius: 6px; border-left: 4px solid #10b981;">' +
+            '<strong>' + stock.name + '</strong> (' + stock.code + ') - ' + 
+            (stock.price ? stock.price.toLocaleString() + '원' : '') +
+            '<div style="font-size: 0.85rem; color: #10b981; margin-top: 5px;">' + 
+            stock.reasons.join(', ') + '</div>' +
+          '</div>'
+        ).join('');
+      } else {
+        buyListEl.innerHTML = '<p style="color: #666;">현재 매수 신호 종목이 없습니다.</p>';
+      }
+      
+      // 매도 신호 표시
+      if (sellSignals.length > 0) {
+        sellListEl.innerHTML = sellSignals.map(stock => 
+          '<div style="padding: 10px; margin-bottom: 8px; background: white; border-radius: 6px; border-left: 4px solid #ef4444;">' +
+            '<strong>' + stock.name + '</strong> (' + stock.code + ') - ' + 
+            (stock.price ? stock.price.toLocaleString() + '원' : '') +
+            '<div style="font-size: 0.85rem; color: #ef4444; margin-top: 5px;">' + 
+            stock.reasons.join(', ') + '</div>' +
+          '</div>'
+        ).join('');
+      } else {
+        sellListEl.innerHTML = '<p style="color: #666;">현재 매도 신호 종목이 없습니다.</p>';
+      }
+      
+      // 알림 전송
+      sendScannerNotification(buySignals, sellSignals);
+      
+      statusEl.textContent = '스캔 완료! (' + scannedCount + '개 종목 분석)';
+      timestampEl.textContent = '마지막 스캔: ' + new Date(timestamp).toLocaleString('ko-KR');
+      resultsEl.style.display = 'block';
+      
+    } else {
+      statusEl.textContent = '스캔 실패: ' + data.error;
+    }
+  } catch (error) {
+    console.error('스캐너 오류:', error);
+    statusEl.textContent = '스캔 중 오류가 발생했습니다.';
+  }
+}
+// ==================== 스캐너 알림 설정 ====================
+
+// 브라우저 푸시 알림 권한 요청
+async function requestPushPermission() {
+  if (!('Notification' in window)) {
+    alert('이 브라우저는 푸시 알림을 지원하지 않습니다.');
+    return false;
+  }
+  
+  if (Notification.permission === 'granted') {
+    return true;
+  }
+  
+  const permission = await Notification.requestPermission();
+  return permission === 'granted';
+}
+
+// 스캐너 알림 설정 저장
+async function saveScannerNotifySettings() {
+  const pushNotify = document.getElementById('scanner-push-notify').checked;
+  const kakaoNotify = document.getElementById('scanner-kakao-notify').checked;
+  
+  // 브라우저 푸시 체크 시 권한 요청
+  if (pushNotify) {
+    const granted = await requestPushPermission();
+    if (!granted) {
+      document.getElementById('scanner-push-notify').checked = false;
+      alert('브라우저 알림 권한이 거부되었습니다. 브라우저 설정에서 허용해주세요.');
+      return;
+    }
+  }
+  
+  // 설정 저장
+  localStorage.setItem('scannerPushNotify', pushNotify);
+  localStorage.setItem('scannerKakaoNotify', kakaoNotify);
+  
+  alert('알림 설정이 저장되었습니다!');
+}
+
+// 설정 불러오기
+function loadScannerNotifySettings() {
+  const pushNotify = localStorage.getItem('scannerPushNotify') === 'true';
+  const kakaoNotify = localStorage.getItem('scannerKakaoNotify') === 'true';
+  
+  const pushEl = document.getElementById('scanner-push-notify');
+  const kakaoEl = document.getElementById('scanner-kakao-notify');
+  
+  if (pushEl) pushEl.checked = pushNotify;
+  if (kakaoEl) kakaoEl.checked = kakaoNotify;
+}
+
+// 테스트 알림
+async function testScannerNotify() {
+  const pushNotify = document.getElementById('scanner-push-notify').checked;
+  const kakaoNotify = document.getElementById('scanner-kakao-notify').checked;
+  
+  if (!pushNotify && !kakaoNotify) {
+    alert('알림 방식을 선택해주세요.');
+    return;
+  }
+  
+  // 브라우저 푸시 테스트
+  if (pushNotify) {
+    const granted = await requestPushPermission();
+    if (granted) {
+      new Notification('📡 시장 스캐너 테스트', {
+        body: '매수 신호: 테스트 종목\nRSI 과매도 (25.0)',
+        icon: '/icons/icon-192.png'
+      });
+    }
+  }
+  
+  // 카카오톡 테스트
+  if (kakaoNotify) {
+    if (typeof sendKakaoMessage === 'function') {
+      sendKakaoMessage('📡 시장 스캐너 테스트\n\n매수 신호: 테스트 종목\nRSI 과매도 (25.0)');
+    } else {
+      alert('카카오톡 로그인이 필요합니다.');
+    }
+  }
+}
+
+// 스캐너 결과 알림 전송
+function sendScannerNotification(buySignals, sellSignals) {
+  const pushNotify = localStorage.getItem('scannerPushNotify') === 'true';
+  const kakaoNotify = localStorage.getItem('scannerKakaoNotify') === 'true';
+  
+  if (!pushNotify && !kakaoNotify) return;
+  if (buySignals.length === 0 && sellSignals.length === 0) return;
+  
+  // 메시지 생성
+  let message = '📡 시장 스캐너 결과\n\n';
+  
+  if (buySignals.length > 0) {
+    message += '📈 매수 신호:\n';
+    buySignals.slice(0, 5).forEach(stock => {
+      message += '• ' + stock.name + ' - ' + stock.reasons.join(', ') + '\n';
+    });
+    message += '\n';
+  }
+  
+  if (sellSignals.length > 0) {
+    message += '📉 매도 신호:\n';
+    sellSignals.slice(0, 5).forEach(stock => {
+      message += '• ' + stock.name + ' - ' + stock.reasons.join(', ') + '\n';
+    });
+  }
+  
+  // 브라우저 푸시
+  if (pushNotify && Notification.permission === 'granted') {
+    new Notification('📡 시장 스캐너 결과', {
+      body: (buySignals.length > 0 ? '매수 ' + buySignals.length + '개 ' : '') + 
+            (sellSignals.length > 0 ? '매도 ' + sellSignals.length + '개' : ''),
+      icon: '/icons/icon-192.png'
+    });
+  }
+  
+  // 카카오톡
+  if (kakaoNotify && typeof sendKakaoMessage === 'function') {
+    sendKakaoMessage(message);
+  }
 }
