@@ -2620,10 +2620,119 @@
         </div>
         
         
-
-        
         <!-- 상세 분석 결과 -->
         <div id="ai-detail-container" style="margin-top:20px;"></div>
+       
+        
+        <!-- AI 레슨 가이드 -->
+        <div class="card" style="margin-top: 20px;">
+          <details>
+            <summary style="cursor: pointer; font-weight: bold; font-size: 1.1rem; padding: 10px 0;">
+              📖 AI 레슨 가이드 (클릭하여 펼치기)
+            </summary>
+            
+            <div style="padding: 15px 0;">
+              
+              <h4 style="color: #667eea; margin: 10px 0;">🎯 AI 레슨이란?</h4>
+              <p style="color: #666; line-height: 1.8; margin-bottom: 15px;">
+                AI가 종목을 다각도로 분석하여 투자 인사이트를 제공합니다.
+                매매 타이밍, 리스크, 차트 패턴, 뉴스 감성까지 종합적으로 분석합니다.
+              </p>
+              
+              <h4 style="color: #667eea; margin: 15px 0 10px 0;">📊 기능 설명</h4>
+              <div style="display: grid; gap: 10px;">
+                
+                <div style="padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                  <strong style="color: #3b82f6;">⏰ AI 매매 타이밍</strong>
+                  <p style="margin: 5px 0 0 0; color: #666; font-size: 0.9rem;">
+                    RSI, MACD, 이동평균선 등 기술적 지표를 종합 분석하여 현재가 매수/매도/관망 중 어떤 시점인지 판단합니다.
+                  </p>
+                  <ul style="margin: 8px 0 0 0; padding-left: 20px; color: #666; font-size: 0.85rem; line-height: 1.8;">
+                    <li><strong>매수 적기:</strong> 과매도 + 골든크로스 등 상승 신호</li>
+                    <li><strong>매도 적기:</strong> 과매수 + 데드크로스 등 하락 신호</li>
+                    <li><strong>관망:</strong> 신호가 불명확한 상태</li>
+                  </ul>
+                </div>
+                
+                <div style="padding: 12px; background: #fef2f2; border-radius: 8px; border-left: 4px solid #ef4444;">
+                  <strong style="color: #ef4444;">⚠️ AI 리스크 분석</strong>
+                  <p style="margin: 5px 0 0 0; color: #666; font-size: 0.9rem;">
+                    종목의 변동성, 최대 손실 가능성(VaR), 베타 등을 분석하여 투자 위험도를 평가합니다.
+                  </p>
+                  <ul style="margin: 8px 0 0 0; padding-left: 20px; color: #666; font-size: 0.85rem; line-height: 1.8;">
+                    <li><strong>변동성:</strong> 가격 변동 폭 (높을수록 위험)</li>
+                    <li><strong>VaR:</strong> 최악의 경우 예상 손실률</li>
+                    <li><strong>베타:</strong> 시장 대비 민감도 (1 이상이면 시장보다 변동 큼)</li>
+                  </ul>
+                </div>
+                
+                <div style="padding: 12px; background: #f0fdf4; border-radius: 8px; border-left: 4px solid #10b981;">
+                  <strong style="color: #10b981;">📈 AI 차트 패턴</strong>
+                  <p style="margin: 5px 0 0 0; color: #666; font-size: 0.9rem;">
+                    더블탑, 더블바텀 등 차트 패턴을 자동으로 인식하여 추세 전환 가능성을 분석합니다.
+                  </p>
+                  <ul style="margin: 8px 0 0 0; padding-left: 20px; color: #666; font-size: 0.85rem; line-height: 1.8;">
+                    <li><strong>더블탑:</strong> M자 형태 → 하락 전환 신호</li>
+                    <li><strong>더블바텀:</strong> W자 형태 → 상승 전환 신호</li>
+                    <li><strong>신뢰도:</strong> 60~100점 (80점 이상 권장)</li>
+                  </ul>
+                </div>
+                
+                <div style="padding: 12px; background: #fefce8; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                  <strong style="color: #f59e0b;">📰 AI 뉴스 감성 분석</strong>
+                  <p style="margin: 5px 0 0 0; color: #666; font-size: 0.9rem;">
+                    최근 뉴스의 긍정/부정 감성을 분석하여 시장 분위기를 파악합니다.
+                  </p>
+                  <ul style="margin: 8px 0 0 0; padding-left: 20px; color: #666; font-size: 0.85rem; line-height: 1.8;">
+                    <li><strong>긍정적:</strong> 호재성 뉴스 많음 → 상승 기대</li>
+                    <li><strong>부정적:</strong> 악재성 뉴스 많음 → 하락 주의</li>
+                    <li><strong>중립:</strong> 특별한 이슈 없음</li>
+                  </ul>
+                </div>
+                
+              </div>
+              
+              <h4 style="color: #667eea; margin: 20px 0 10px 0;">📊 종합 점수 해석</h4>
+              <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                <tr style="background: #f8fafc;">
+                  <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; width: 25%;">80점 이상</td>
+                  <td style="padding: 12px; border: 1px solid #e2e8f0;">🟢 매우 긍정적 → 적극 매수 고려</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold;">60~79점</td>
+                  <td style="padding: 12px; border: 1px solid #e2e8f0;">🟡 긍정적 → 분할 매수 고려</td>
+                </tr>
+                <tr style="background: #f8fafc;">
+                  <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold;">40~59점</td>
+                  <td style="padding: 12px; border: 1px solid #e2e8f0;">⚪ 중립 → 관망 또는 추가 분석</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold;">40점 미만</td>
+                  <td style="padding: 12px; border: 1px solid #e2e8f0;">🔴 부정적 → 매수 보류, 보유 시 익절/손절 고려</td>
+                </tr>
+              </table>
+              
+              <h4 style="color: #667eea; margin: 20px 0 10px 0;">💡 활용 팁</h4>
+              <ul style="color: #666; line-height: 2; padding-left: 20px; font-size: 0.9rem;">
+                <li><strong>종합 판단:</strong> 4가지 분석을 모두 확인 후 종합적으로 판단</li>
+                <li><strong>타이밍 + 리스크:</strong> 매수 타이밍이 좋아도 리스크가 높으면 소액 투자</li>
+                <li><strong>뉴스 확인:</strong> 기술적 신호와 뉴스 감성이 일치하면 신뢰도 UP</li>
+                <li><strong>패턴 활용:</strong> 패턴 신뢰도 80점 이상일 때만 참고</li>
+                <li><strong>정기 분석:</strong> 보유 종목은 주 1회 이상 재분석 권장</li>
+              </ul>
+              
+              <h4 style="color: #ef4444; margin: 20px 0 10px 0;">⚠️ 주의사항</h4>
+              <ul style="color: #666; line-height: 2; padding-left: 20px; font-size: 0.9rem;">
+                <li>AI 분석은 <strong>과거 데이터 기반</strong>이며 미래 수익을 보장하지 않습니다</li>
+                <li>뉴스 감성 분석은 <strong>키워드 기반</strong>으로 100% 정확하지 않습니다</li>
+                <li>반드시 <strong>본인의 판단과 책임</strong> 하에 투자하세요</li>
+                <li>AI 점수가 높아도 <strong>손절가는 반드시</strong> 설정하세요</li>
+              </ul>
+              
+            </div>
+          </details>
+        </div>
+      
       </section>
 
     </main>
