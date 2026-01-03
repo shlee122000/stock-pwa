@@ -12522,3 +12522,143 @@ function stopAutoScan() {
   
   alert('자동 스캔이 중지되었습니다.');
 }
+
+
+// ==================== 백테스팅 ====================
+async function runBacktest() {
+  const code = document.getElementById('backtest-stock-code').value.trim();
+  const period = document.getElementById('backtest-period').value;
+  const strategy = document.getElementById('backtest-strategy').value;
+  const capital = parseInt(document.getElementById('backtest-capital').value);
+  
+  if (!code) {
+    alert('종목코드를 입력해주세요.');
+    return;
+  }
+  
+  showLoading();
+  
+  try {
+    const response = await fetch('/api/analysis/backtest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, period, strategy, initialCapital: capital })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      displayBacktestResults(data.data);
+    } else {
+      alert('백테스팅 실패: ' + data.error);
+    }
+  } catch (error) {
+    console.error('백테스팅 오류:', error);
+    alert('백테스팅 중 오류가 발생했습니다.');
+  } finally {
+    hideLoading();
+  }
+}
+
+function displayBacktestResults(result) {
+  const resultsEl = document.getElementById('backtest-results');
+  const summaryEl = document.getElementById('backtest-summary');
+  const metricsEl = document.getElementById('backtest-metrics');
+  const tradesEl = document.getElementById('backtest-trades');
+  
+  // 전략 이름
+  const strategyNames = {
+    'rsi': 'RSI (30/70)',
+    'macd': 'MACD 크로스',
+    'golden': '이평선 골든/데드크로스',
+    'combined': '복합 전략'
+  };
+  
+  // 수익률 색상
+  const returnColor = result.totalReturnRate >= 0 ? '#10b981' : '#ef4444';
+  const buyHoldColor = result.buyHoldReturn >= 0 ? '#10b981' : '#ef4444';
+  
+  // 요약 표시
+  summaryEl.innerHTML = 
+    '<div style="font-size: 1.1rem; margin-bottom: 10px;">' +
+      '<strong>' + result.stockName + '</strong> (' + result.stockCode + ')' +
+    '</div>' +
+    '<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">' +
+      '<div style="text-align: center; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px;">' +
+        '<div style="font-size: 0.9rem; opacity: 0.9;">전략 수익률</div>' +
+        '<div style="font-size: 2rem; font-weight: bold;">' + result.totalReturnRate + '%</div>' +
+      '</div>' +
+      '<div style="text-align: center; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px;">' +
+        '<div style="font-size: 0.9rem; opacity: 0.9;">바이앤홀드</div>' +
+        '<div style="font-size: 2rem; font-weight: bold;">' + result.buyHoldReturn + '%</div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="margin-top: 15px; font-size: 0.9rem;">' +
+      '기간: ' + result.startDate + ' ~ ' + result.endDate + ' | 전략: ' + strategyNames[result.strategy] +
+    '</div>';
+  
+  // 상세 지표
+  metricsEl.innerHTML = 
+    '<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px;">' +
+      '<div style="padding: 12px; background: #f8fafc; border-radius: 6px;">' +
+        '<div style="font-size: 0.85rem; color: #666;">초기 자본</div>' +
+        '<div style="font-size: 1.2rem; font-weight: bold;">' + result.initialCapital.toLocaleString() + '원</div>' +
+      '</div>' +
+      '<div style="padding: 12px; background: #f8fafc; border-radius: 6px;">' +
+        '<div style="font-size: 0.85rem; color: #666;">최종 자본</div>' +
+        '<div style="font-size: 1.2rem; font-weight: bold; color: ' + returnColor + ';">' + result.finalCapital.toLocaleString() + '원</div>' +
+      '</div>' +
+      '<div style="padding: 12px; background: #f8fafc; border-radius: 6px;">' +
+        '<div style="font-size: 0.85rem; color: #666;">총 수익</div>' +
+        '<div style="font-size: 1.2rem; font-weight: bold; color: ' + returnColor + ';">' + 
+          (result.totalReturn >= 0 ? '+' : '') + result.totalReturn.toLocaleString() + '원</div>' +
+      '</div>' +
+      '<div style="padding: 12px; background: #f8fafc; border-radius: 6px;">' +
+        '<div style="font-size: 0.85rem; color: #666;">승률</div>' +
+        '<div style="font-size: 1.2rem; font-weight: bold;">' + result.winRate + '%</div>' +
+      '</div>' +
+      '<div style="padding: 12px; background: #f8fafc; border-radius: 6px;">' +
+        '<div style="font-size: 0.85rem; color: #666;">총 거래</div>' +
+        '<div style="font-size: 1.2rem; font-weight: bold;">' + result.totalTrades + '회</div>' +
+      '</div>' +
+      '<div style="padding: 12px; background: #f8fafc; border-radius: 6px;">' +
+        '<div style="font-size: 0.85rem; color: #666;">승/패</div>' +
+        '<div style="font-size: 1.2rem; font-weight: bold;">' + 
+          '<span style="color: #10b981;">' + result.winTrades + '승</span> / ' +
+          '<span style="color: #ef4444;">' + result.loseTrades + '패</span></div>' +
+      '</div>' +
+    '</div>';
+  
+  // 거래 내역
+  if (result.trades && result.trades.length > 0) {
+    tradesEl.innerHTML = result.trades.map(function(trade, index) {
+      const isBuy = trade.type === 'buy';
+      const bgColor = isBuy ? '#f0fdf4' : '#fef2f2';
+      const borderColor = isBuy ? '#10b981' : '#ef4444';
+      const icon = isBuy ? '📈' : '📉';
+      
+      return '<div style="padding: 12px; margin-bottom: 8px; background: ' + bgColor + '; border-left: 4px solid ' + borderColor + '; border-radius: 6px;">' +
+        '<div style="display: flex; justify-content: space-between; align-items: center;">' +
+          '<div>' +
+            '<strong>' + icon + ' ' + (isBuy ? '매수' : '매도') + '</strong> ' +
+            '<span style="color: #666; font-size: 0.9rem;">' + trade.date + '</span>' +
+          '</div>' +
+          '<div style="text-align: right;">' +
+            '<div style="font-weight: bold;">' + trade.price.toLocaleString() + '원</div>' +
+            '<div style="font-size: 0.85rem; color: #666;">' + trade.quantity + '주</div>' +
+          '</div>' +
+        '</div>' +
+        (trade.profit !== undefined ? 
+          '<div style="margin-top: 8px; font-size: 0.9rem; color: ' + (trade.profit >= 0 ? '#10b981' : '#ef4444') + ';">' +
+            '수익: ' + (trade.profit >= 0 ? '+' : '') + trade.profit.toLocaleString() + '원 (' + trade.profitRate + '%)' +
+          '</div>' : '') +
+        '<div style="margin-top: 5px; font-size: 0.85rem; color: #888;">' + trade.reason + '</div>' +
+      '</div>';
+    }).join('');
+  } else {
+    tradesEl.innerHTML = '<p style="color: #666;">거래 내역이 없습니다.</p>';
+  }
+  
+  resultsEl.style.display = 'block';
+  resultsEl.scrollIntoView({ behavior: 'smooth' });
+}

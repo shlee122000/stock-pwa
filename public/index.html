@@ -16,7 +16,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <!-- CSS -->
-  <link rel="stylesheet" href="/css/styles.css?v=57">
+  <link rel="stylesheet" href="/css/styles.css?v=58">
 </head>
 <body>
   <div class="app-container">
@@ -33,6 +33,7 @@
         <button class="nav-item" data-tab="stock-finder">🔍 종목 찾기</button>
         <button class="nav-item" data-tab="analysis">📊 기술적 분석</button>
         <button class="nav-item" data-tab="signals">🚦 매매 신호</button>
+        <button class="nav-item" data-tab="backtest">📊 백테스팅</button>
         <button class="nav-item" data-tab="watchlist">⭐ 관심 종목</button>
         <button class="nav-item" data-tab="us-stock">🇺🇸 미국 주식</button>
         <button class="nav-item" data-tab="portfolio">💼 내 포트폴리오</button>
@@ -1122,13 +1123,185 @@
             </div>
             
             <p id="scanner-timestamp" style="margin-top: 15px; font-size: 0.85rem; color: #999;"></p>
-          </div>
-        </div>            
-            <p id="scanner-timestamp" style="margin-top: 15px; font-size: 0.85rem; color: #999;"></p>   
+          
           </div>
         </div>
 
         </section>
+
+
+      <!-- 백테스팅 -->
+      <section id="tab-backtest" class="tab-content">
+        <div class="tab-header">
+          <button class="back-btn" onclick="goBack()">
+            <span class="back-icon">←</span> 뒤로
+          </button>
+          <h2>📊 백테스팅</h2>
+        </div>
+        
+        <div class="card">
+          <h3>⚙️ 백테스팅 설정</h3>
+          
+          <div style="display: grid; gap: 15px; margin-top: 15px;">
+            <!-- 종목 입력 -->
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 5px;">종목코드</label>
+              <input type="text" id="backtest-stock-code" placeholder="예: 005930 (삼성전자)" 
+                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+            </div>
+            
+            <!-- 기간 선택 -->
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 5px;">테스트 기간</label>
+              <select id="backtest-period" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                <option value="1m">1개월</option>
+                <option value="3m" selected>3개월</option>
+                <option value="6m">6개월</option>
+                <option value="1y">1년</option>
+              </select>
+            </div>
+            
+            <!-- 전략 선택 -->
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 5px;">매매 전략</label>
+              <select id="backtest-strategy" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                <option value="rsi">RSI (30/70)</option>
+                <option value="macd">MACD 크로스</option>
+                <option value="golden">이평선 골든/데드크로스</option>
+                <option value="combined">복합 전략</option>
+              </select>
+            </div>
+            
+            <!-- 초기 자본 -->
+            <div>
+              <label style="font-weight: bold; display: block; margin-bottom: 5px;">초기 투자금 (원)</label>
+              <input type="number" id="backtest-capital" value="10000000" 
+                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+            </div>
+          </div>
+          
+          <button onclick="runBacktest()" 
+                  style="margin-top: 20px; width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer;">
+            🚀 백테스팅 실행
+          </button>
+        </div>
+        
+        <!-- 결과 영역 -->
+        <div id="backtest-results" style="display: none; margin-top: 20px;">
+          <!-- 요약 카드 -->
+          <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <h3 style="margin: 0 0 15px 0;">📈 백테스팅 결과</h3>
+            <div id="backtest-summary"></div>
+          </div>
+          
+          <!-- 상세 지표 -->
+          <div class="card" style="margin-top: 15px;">
+            <h3>📊 상세 지표</h3>
+            <div id="backtest-metrics"></div>
+          </div>
+          
+          <!-- 거래 내역 -->
+          <div class="card" style="margin-top: 15px;">
+            <h3>📋 거래 내역</h3>
+            <div id="backtest-trades" style="max-height: 400px; overflow-y: auto;"></div>
+          </div>
+        </div>
+        <!-- 백테스팅 가이드 -->
+        <div class="card" style="margin-top: 20px;">
+          <details>
+            <summary style="cursor: pointer; font-weight: bold; font-size: 1.1rem; padding: 10px 0;">
+              📖 백테스팅 가이드 (클릭하여 펼치기)
+            </summary>
+            
+            <div style="padding: 15px 0;">
+              <h4 style="color: #667eea; margin: 15px 0 10px 0;">🎯 백테스팅이란?</h4>
+              <p style="color: #666; line-height: 1.8;">
+                백테스팅은 과거 주가 데이터를 사용하여 특정 매매 전략이 얼마나 효과적이었는지 검증하는 방법입니다.
+                실제 투자 전에 전략의 성과를 미리 확인할 수 있습니다.
+              </p>
+              
+              <h4 style="color: #667eea; margin: 20px 0 10px 0;">⚙️ 설정 항목 설명</h4>
+              <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                <tr style="background: #f8fafc;">
+                  <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; width: 25%;">종목코드</td>
+                  <td style="padding: 12px; border: 1px solid #e2e8f0;">테스트할 종목의 6자리 코드 (예: 005930 = 삼성전자)</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold;">테스트 기간</td>
+                  <td style="padding: 12px; border: 1px solid #e2e8f0;">1개월 / 3개월 / 6개월 / 1년 중 선택. 기간이 길수록 신뢰도 높음</td>
+                </tr>
+                <tr style="background: #f8fafc;">
+                  <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold;">매매 전략</td>
+                  <td style="padding: 12px; border: 1px solid #e2e8f0;">아래 전략 설명 참고</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold;">초기 투자금</td>
+                  <td style="padding: 12px; border: 1px solid #e2e8f0;">시뮬레이션에 사용할 가상 투자금액 (기본 1,000만원)</td>
+                </tr>
+              </table>
+              
+              <h4 style="color: #667eea; margin: 20px 0 10px 0;">📊 매매 전략 설명</h4>
+              <div style="display: grid; gap: 10px;">
+                <div style="padding: 15px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                  <strong>RSI (30/70)</strong>
+                  <p style="margin: 5px 0 0 0; color: #666; font-size: 0.9rem;">
+                    RSI가 30 이하면 매수, 70 이상이면 매도. 과매수/과매도 구간을 활용한 역추세 전략
+                  </p>
+                </div>
+                <div style="padding: 15px; background: #f0fdf4; border-radius: 8px; border-left: 4px solid #10b981;">
+                  <strong>MACD 크로스</strong>
+                  <p style="margin: 5px 0 0 0; color: #666; font-size: 0.9rem;">
+                    MACD가 시그널선을 상향 돌파하면 매수, 하향 돌파하면 매도. 추세 전환점 포착
+                  </p>
+                </div>
+                <div style="padding: 15px; background: #fefce8; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                  <strong>이평선 골든/데드크로스</strong>
+                  <p style="margin: 5px 0 0 0; color: #666; font-size: 0.9rem;">
+                    5일 이평선이 20일 이평선을 상향 돌파하면 매수, 하향 돌파하면 매도
+                  </p>
+                </div>
+                <div style="padding: 15px; background: #fdf4ff; border-radius: 8px; border-left: 4px solid #a855f7;">
+                  <strong>복합 전략</strong>
+                  <p style="margin: 5px 0 0 0; color: #666; font-size: 0.9rem;">
+                    RSI와 MACD를 함께 사용. 둘 중 하나라도 신호 발생 시 매매 실행
+                  </p>
+                </div>
+              </div>
+              
+              <h4 style="color: #667eea; margin: 20px 0 10px 0;">📈 결과 해석</h4>
+              <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                <tr style="background: #f8fafc;">
+                  <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; width: 25%;">전략 수익률</td>
+                  <td style="padding: 12px; border: 1px solid #e2e8f0;">선택한 전략으로 매매했을 때의 수익률</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold;">바이앤홀드</td>
+                  <td style="padding: 12px; border: 1px solid #e2e8f0;">처음에 매수 후 끝까지 보유했을 때의 수익률 (비교 기준)</td>
+                </tr>
+                <tr style="background: #f8fafc;">
+                  <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold;">승률</td>
+                  <td style="padding: 12px; border: 1px solid #e2e8f0;">전체 거래 중 수익을 낸 거래의 비율</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold;">총 거래</td>
+                  <td style="padding: 12px; border: 1px solid #e2e8f0;">테스트 기간 동안 발생한 매수+매도 횟수</td>
+                </tr>
+              </table>
+              
+              <h4 style="color: #ef4444; margin: 20px 0 10px 0;">⚠️ 주의사항</h4>
+              <ul style="color: #666; line-height: 2; padding-left: 20px;">
+                <li>백테스팅 결과는 <strong>과거 데이터 기반</strong>이며 미래 수익을 보장하지 않습니다</li>
+                <li>실제 거래에서는 <strong>수수료, 세금, 슬리피지</strong> 등이 발생합니다</li>
+                <li>여러 종목과 기간으로 테스트하여 <strong>전략의 일관성</strong>을 확인하세요</li>
+                <li>하나의 전략에만 의존하지 말고 <strong>분산 투자</strong>를 권장합니다</li>
+              </ul>
+            </div>
+          </details>
+        </div>
+
+        </section>
+
+      
               
       <!-- 관심 종목 -->
       <section id="tab-watchlist" class="tab-content">
@@ -2376,7 +2549,7 @@
   </div>
   
   <!-- JavaScript -->
-    <script src="/js/app.js?v=57"></script>
+    <script src="/js/app.js?v=58"></script>
   
 
   <!--  
@@ -2467,7 +2640,7 @@
 <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
 
 <!-- 2. 내부 유틸리티 -->
-<script src="/js/cache-manager.js?v=57"></script>
+<script src="/js/cache-manager.js?v=58"></script>
 
   
 </body>
