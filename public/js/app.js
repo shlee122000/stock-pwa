@@ -12414,10 +12414,28 @@ async function testScannerNotify() {
   
   // 카카오톡 테스트
   if (kakaoNotify) {
-    if (typeof sendKakaoMessage === 'function') {
-      sendKakaoMessage('📡 시장 스캐너 테스트\n\n매수 신호: 테스트 종목\nRSI 과매도 (25.0)');
+    if (Kakao.Auth.getAccessToken()) {
+      try {
+        await Kakao.API.request({
+          url: '/v2/api/talk/memo/default/send',
+          data: {
+            template_object: {
+              object_type: 'text',
+              text: '📡 시장 스캐너 테스트\n\n매수 신호: 테스트 종목\nRSI 과매도 (25.0)',
+              link: {
+                web_url: 'https://stock-pwa.vercel.app',
+                mobile_web_url: 'https://stock-pwa.vercel.app'
+              }
+            }
+          }
+        });
+        alert('카카오톡 테스트 메시지 전송 완료!');
+      } catch (error) {
+        console.error('카카오톡 전송 실패:', error);
+        alert('카카오톡 전송 실패: ' + (error.msg || error.message));
+      }
     } else {
-      alert('카카오톡 로그인이 필요합니다.');
+      alert('대시보드에서 먼저 카카오톡 로그인을 해주세요.');
     }
   }
 }
