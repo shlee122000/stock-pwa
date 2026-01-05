@@ -5529,44 +5529,64 @@ if ('Notification' in window && Notification.permission === 'default') {
 // 대시보드 포트폴리오 요약
 async function loadDashboardPortfolio() {
   var container = document.getElementById('dashboard-portfolio-summary');
+  var token = localStorage.getItem('authToken');
   
   var krTotal = { invest: 0, value: 0, count: 0 };
   var usTotal = { invest: 0, value: 0, count: 0 };
   
-  // 한국 주식 계산
-  if (portfolio && portfolio.length > 0) {
-    krTotal.count = portfolio.length;
-    for (var i = 0; i < portfolio.length; i++) {
-      var item = portfolio[i];
-      krTotal.invest += item.price * item.qty;
-      
-      try {
-        var result = await apiCall('/api/korea/stock/' + item.code);
-        if (result.success && result.data) {
-          krTotal.value += result.data.price * item.qty;
-        }
-      } catch (e) {
-        krTotal.value += item.price * item.qty;
-      }
-    }
+  if (!token) {
+    container.innerHTML = '<p style="color:#666;">로그인하면 포트폴리오를 확인할 수 있습니다.</p>';
+    return;
   }
   
-  // 미국 주식 계산
-  if (usPortfolio && usPortfolio.length > 0) {
-    usTotal.count = usPortfolio.length;
-    for (var i = 0; i < usPortfolio.length; i++) {
-      var item = usPortfolio[i];
-      usTotal.invest += item.price * item.qty;
-      
-      try {
-        var result = await apiCall('/api/us/quote/' + item.symbol);
-        if (result.success && result.data) {
-          usTotal.value += result.data.price * item.qty;
+  try {
+    // 한국 주식 서버에서 조회
+    var krResult = await fetch(API_BASE + '/api/portfolio', {
+      headers: { 'Authorization': token }
+    }).then(function(res) { return res.json(); });
+    
+    if (krResult.success && krResult.data && krResult.data.length > 0) {
+      krTotal.count = krResult.data.length;
+      for (var i = 0; i < krResult.data.length; i++) {
+        var item = krResult.data[i];
+        var buyPrice = parseFloat(item.buy_price);
+        krTotal.invest += buyPrice * item.quantity;
+        
+        try {
+          var result = await apiCall('/api/korea/stock/' + item.stock_code);
+          if (result.success && result.data) {
+            krTotal.value += result.data.price * item.quantity;
+          }
+        } catch (e) {
+          krTotal.value += buyPrice * item.quantity;
         }
-      } catch (e) {
-        usTotal.value += item.price * item.qty;
       }
     }
+    
+    // 미국 주식 서버에서 조회
+    var usResult = await fetch(API_BASE + '/api/portfolio/us', {
+      headers: { 'Authorization': token }
+    }).then(function(res) { return res.json(); });
+    
+    if (usResult.success && usResult.data && usResult.data.length > 0) {
+      usTotal.count = usResult.data.length;
+      for (var i = 0; i < usResult.data.length; i++) {
+        var item = usResult.data[i];
+        var buyPrice = parseFloat(item.buy_price);
+        usTotal.invest += buyPrice * item.quantity;
+        
+        try {
+          var result = await apiCall('/api/us/quote/' + item.stock_code);
+          if (result.success && result.data) {
+            usTotal.value += result.data.price * item.quantity;
+          }
+        } catch (e) {
+          usTotal.value += buyPrice * item.quantity;
+        }
+      }
+    }
+  } catch (error) {
+    console.error('대시보드 포트폴리오 로드 오류:', error);
   }
   
   // 수익률 계산
@@ -5624,7 +5644,6 @@ async function loadDashboardPortfolio() {
   
   container.innerHTML = html;
 }
-
 
 // 대시보드 알림 현황
 function loadDashboardAlerts() {
