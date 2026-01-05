@@ -9,7 +9,7 @@ async function getUserIdByToken(token) {
   return result.rows.length > 0 ? result.rows[0].id : null;
 }
 
-// 포트폴리오 조회
+// 포트폴리오 조회 (한국)
 router.get('/', async (req, res) => {
   try {
     const token = req.headers.authorization;
@@ -20,8 +20,8 @@ router.get('/', async (req, res) => {
     }
     
     const result = await pool.query(
-      'SELECT * FROM portfolio WHERE user_id = $1 ORDER BY created_at DESC',
-      [userId]
+      'SELECT * FROM portfolio WHERE user_id = $1 AND (market = $2 OR market IS NULL) ORDER BY created_at DESC',
+      [userId, 'korea']
     );
     
     res.json({ success: true, data: result.rows });
@@ -31,7 +31,29 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 포트폴리오 추가
+// 미국 포트폴리오 조회
+router.get('/us', async (req, res) => {
+  try {
+    const token = req.headers.authorization;
+    const userId = await getUserIdByToken(token);
+    
+    if (!userId) {
+      return res.json({ success: false, message: '로그인이 필요합니다.' });
+    }
+    
+    const result = await pool.query(
+      'SELECT * FROM portfolio WHERE user_id = $1 AND market = $2 ORDER BY created_at DESC',
+      [userId, 'us']
+    );
+    
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error('미국 포트폴리오 조회 오류:', error);
+    res.json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 포트폴리오 추가 (한국)
 router.post('/add', async (req, res) => {
   try {
     const token = req.headers.authorization;
@@ -48,13 +70,41 @@ router.post('/add', async (req, res) => {
     }
     
     await pool.query(
-      'INSERT INTO portfolio (user_id, stock_code, stock_name, quantity, buy_price) VALUES ($1, $2, $3, $4, $5)',
-      [userId, stockCode, stockName || '', quantity, buyPrice]
+      'INSERT INTO portfolio (user_id, stock_code, stock_name, quantity, buy_price, market) VALUES ($1, $2, $3, $4, $5, $6)',
+      [userId, stockCode, stockName || '', quantity, buyPrice, 'korea']
     );
     
     res.json({ success: true, message: '포트폴리오에 추가되었습니다.' });
   } catch (error) {
     console.error('포트폴리오 추가 오류:', error);
+    res.json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 미국 포트폴리오 추가
+router.post('/us/add', async (req, res) => {
+  try {
+    const token = req.headers.authorization;
+    const userId = await getUserIdByToken(token);
+    
+    if (!userId) {
+      return res.json({ success: false, message: '로그인이 필요합니다.' });
+    }
+    
+    const { stockCode, stockName, quantity, buyPrice } = req.body;
+    
+    if (!stockCode || !quantity || !buyPrice) {
+      return res.json({ success: false, message: '종목코드, 수량, 매수가를 입력해주세요.' });
+    }
+    
+    await pool.query(
+      'INSERT INTO portfolio (user_id, stock_code, stock_name, quantity, buy_price, market) VALUES ($1, $2, $3, $4, $5, $6)',
+      [userId, stockCode, stockName || '', quantity, buyPrice, 'us']
+    );
+    
+    res.json({ success: true, message: '미국 포트폴리오에 추가되었습니다.' });
+  } catch (error) {
+    console.error('미국 포트폴리오 추가 오류:', error);
     res.json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });

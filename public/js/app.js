@@ -1503,11 +1503,12 @@ function createATRChart(containerId, data) {
 
 
 // ==================== 초기화 ====================
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
   initTabs(); 
   loadExchangeRate();          // ← 먼저 실행!
   initEventListeners();  // ← 나중에 실행
- 
+  // 로그인 상태 먼저 복원
+  await verifyToken();
   loadWatchlist();
   loadUsWatchlist();
   loadPortfolio();
@@ -4534,34 +4535,54 @@ async function handleAddUsPortfolio() {
     return;
   }
   
+  // 로그인 확인
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    alert('로그인이 필요합니다.');
+    openAuthModal();
+    return;
+  }
+  
   showLoading();
   
   try {
+    // 종목 정보 확인
     var result = await apiCall('/api/us/quote/' + symbol);
     
     if (result.success && result.data) {
-      usPortfolio.push({
-        symbol: symbol,
-        name: result.data.name || symbol,
-        qty: qty,
-        price: price,
-        addedAt: new Date().toISOString()
-      });
+      // 서버에 저장
+      var addResult = await fetch(API_BASE + '/api/portfolio/us/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({
+          stockCode: symbol,
+          stockName: result.data.name || symbol,
+          quantity: qty,
+          buyPrice: price
+        })
+      }).then(function(res) { return res.json(); });
       
-      localStorage.setItem('usPortfolio', JSON.stringify(usPortfolio));
-      
-      document.getElementById('us-portfolio-symbol').value = '';
-      document.getElementById('us-portfolio-qty').value = '';
-      document.getElementById('us-portfolio-price').value = '';
-      
-      loadUsPortfolio();
-      updateUsAlertStockSelect();
-      alert(symbol + ' 추가되었습니다!');
+      if (addResult.success) {
+        document.getElementById('us-portfolio-symbol').value = '';
+        document.getElementById('us-portfolio-qty').value = '';
+        document.getElementById('us-portfolio-price').value = '';
+        
+        loadUsPortfolio();
+        loadDashboard();
+        updateUsAlertStockSelect();
+        alert(symbol + ' 추가되었습니다!');
+      } else {
+        alert(addResult.message || '추가 실패');
+      }
     } else {
       alert('종목을 찾을 수 없습니다: ' + symbol);
     }
   } catch (error) {
     console.error('미국 포트폴리오 추가 오류:', error);
+    alert('오류가 발생했습니다.');
   }
   
   hideLoading();
@@ -4571,70 +4592,121 @@ async function loadUsPortfolio() {
   var container = document.getElementById('us-portfolio-list');
   var summaryContainer = document.getElementById('us-portfolio-summary');
   
-  if (usPortfolio.length === 0) {
-    container.innerHTML = '<p>등록된 미국 주식이 없습니다.</p>';
+  // 로그인 확인
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    container.innerHTML = '<p>로그인하면 포트폴리오를 저장할 수 있습니다.</p>';
     summaryContainer.innerHTML = '<p>--</p>';
-    updateUsAlertStockSelect();
     return;
   }
   
-  var html = '<table><thead><tr><th>종목</th><th>수량</th><th>매수가</th><th>현재가</th><th>평가금</th><th>수익</th><th>기능</th></tr></thead><tbody>';
-  
-  var totalInvest = 0;
-  var totalValue = 0;
-  
-  for (var i = 0; i < usPortfolio.length; i++) {
-    var item = usPortfolio[i];
-    var result = await apiCall('/api/us/quote/' + item.symbol);
-    var data = result.success ? result.data : null;
+  try {
+    // 서버에서 미국 포트폴리오 조회
+    var result = await fetch(API_BASE + '/api/portfolio/us', {
+      headers: {
+        'Authorization': token
+      }
+    }).then(function(res) { return res.json(); });
     
-    var currentPrice = data ? data.price : 0;
-    var investAmt = item.qty * item.price;
-    var valueAmt = item.qty * currentPrice;
-    var profit = valueAmt - investAmt;
-    var profitRate = investAmt > 0 ? ((profit / investAmt) * 100).toFixed(2) : 0;
-    var profitClass = profit >= 0 ? 'positive' : 'negative';
+    if (!result.success || !result.data || result.data.length === 0) {
+      container.innerHTML = '<p>등록된 미국 주식이 없습니다.</p>';
+      summaryContainer.innerHTML = '<p>--</p>';
+      updateUsAlertStockSelect();
+      return;
+    }
     
-    totalInvest += investAmt;
-    totalValue += valueAmt;
+    var portfolioData = result.data;
     
-    html += '<tr>';
-    html += '<td><strong>' + (item.name || item.symbol) + '</strong><br><small>' + item.symbol + '</small></td>';
-    html += '<td>' + item.qty + '주</td>';
-    html += '<td>$' + item.price.toFixed(2) + '</td>';
-    html += '<td>' + (currentPrice > 0 ? '$' + currentPrice.toFixed(2) : '--') + '</td>';
-    html += '<td>$' + valueAmt.toFixed(2) + '</td>';
-    html += '<td class="' + profitClass + '">' + (profit >= 0 ? '+' : '') + '$' + profit.toFixed(2) + ' (' + (profit >= 0 ? '+' : '') + profitRate + '%)</td>';
-    html += '<td><button class="btn-danger" onclick="removeFromUsPortfolio(' + i + ')">삭제</button></td>';
-    html += '</tr>';
+    var html = '<table><thead><tr><th>종목</th><th>수량</th><th>매수가</th><th>현재가</th><th>평가금</th><th>수익</th><th>기능</th></tr></thead><tbody>';
+    
+    var totalInvest = 0;
+    var totalValue = 0;
+    
+    for (var i = 0; i < portfolioData.length; i++) {
+      var item = portfolioData[i];
+      var stockResult = await apiCall('/api/us/quote/' + item.stock_code);
+      var data = stockResult.success ? stockResult.data : null;
+      
+      var currentPrice = data ? data.price : 0;
+      var buyPrice = parseFloat(item.buy_price);
+      var investAmt = item.quantity * buyPrice;
+      var valueAmt = item.quantity * currentPrice;
+      var profit = valueAmt - investAmt;
+      var profitRate = investAmt > 0 ? ((profit / investAmt) * 100).toFixed(2) : 0;
+      var profitClass = profit >= 0 ? 'positive' : 'negative';
+      
+      totalInvest += investAmt;
+      totalValue += valueAmt;
+      
+      html += '<tr>';
+      html += '<td><strong>' + (item.stock_name || item.stock_code) + '</strong><br><small>' + item.stock_code + '</small></td>';
+      html += '<td>' + item.quantity + '주</td>';
+      html += '<td>$' + buyPrice.toFixed(2) + '</td>';
+      html += '<td>' + (currentPrice > 0 ? '$' + currentPrice.toFixed(2) : '--') + '</td>';
+      html += '<td>$' + valueAmt.toFixed(2) + '</td>';
+      html += '<td class="' + profitClass + '">' + (profit >= 0 ? '+' : '') + '$' + profit.toFixed(2) + ' (' + (profit >= 0 ? '+' : '') + profitRate + '%)</td>';
+      html += '<td><button class="btn-danger" onclick="removeFromUsPortfolio(' + item.id + ')">삭제</button></td>';
+      html += '</tr>';
+    }
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+    
+    // 총 평가
+    var totalProfit = totalValue - totalInvest;
+    var totalProfitRate = totalInvest > 0 ? ((totalProfit / totalInvest) * 100).toFixed(2) : 0;
+    var totalClass = totalProfit >= 0 ? 'positive' : 'negative';
+    
+    var summaryHtml = '<div class="indicators-grid">';
+    summaryHtml += '<div class="indicator-card"><div class="label">총 투자금</div><div class="value">$' + totalInvest.toFixed(2) + '</div></div>';
+    summaryHtml += '<div class="indicator-card"><div class="label">총 평가금</div><div class="value">$' + totalValue.toFixed(2) + '</div></div>';
+    summaryHtml += '<div class="indicator-card"><div class="label">총 수익</div><div class="value ' + totalClass + '">' + (totalProfit >= 0 ? '+' : '') + '$' + totalProfit.toFixed(2) + '</div></div>';
+    summaryHtml += '<div class="indicator-card"><div class="label">수익률</div><div class="value ' + totalClass + '">' + (totalProfit >= 0 ? '+' : '') + totalProfitRate + '%</div></div>';
+    summaryHtml += '</div>';
+    summaryContainer.innerHTML = summaryHtml;
+    
+    updateUsAlertStockSelect();
+  } catch (error) {
+    console.error('미국 포트폴리오 로드 오류:', error);
+    container.innerHTML = '<p>포트폴리오를 불러올 수 없습니다.</p>';
   }
-  
-  html += '</tbody></table>';
-  container.innerHTML = html;
-  
-  // 총 평가
-  var totalProfit = totalValue - totalInvest;
-  var totalProfitRate = totalInvest > 0 ? ((totalProfit / totalInvest) * 100).toFixed(2) : 0;
-  var totalClass = totalProfit >= 0 ? 'positive' : 'negative';
-  
-  var summaryHtml = '<div class="indicators-grid">';
-  summaryHtml += '<div class="indicator-card"><div class="label">총 투자금</div><div class="value">$' + totalInvest.toFixed(2) + '</div></div>';
-  summaryHtml += '<div class="indicator-card"><div class="label">총 평가금</div><div class="value">$' + totalValue.toFixed(2) + '</div></div>';
-  summaryHtml += '<div class="indicator-card"><div class="label">총 수익</div><div class="value ' + totalClass + '">' + (totalProfit >= 0 ? '+' : '') + '$' + totalProfit.toFixed(2) + '</div></div>';
-  summaryHtml += '<div class="indicator-card"><div class="label">수익률</div><div class="value ' + totalClass + '">' + (totalProfit >= 0 ? '+' : '') + totalProfitRate + '%</div></div>';
-  summaryHtml += '</div>';
-  summaryContainer.innerHTML = summaryHtml;
-  
-  updateUsAlertStockSelect();
 }
 
-function removeFromUsPortfolio(index) {
-  if (confirm('이 종목을 삭제하시겠습니까?')) {
-    usPortfolio.splice(index, 1);
-    localStorage.setItem('usPortfolio', JSON.stringify(usPortfolio));
-    loadUsPortfolio();
+
+async function removeFromUsPortfolio(id) {
+  if (!confirm('정말 삭제하시겠습니까?')) return;
+  
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    alert('로그인이 필요합니다.');
+    return;
+  }
+  
+  try {
+    var result = await fetch(API_BASE + '/api/portfolio/remove', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({ id: id })
+    }).then(function(res) { return res.json(); });
+    
+    if (result.success) {
+      loadUsPortfolio();
+      loadDashboard();
+      updateUsAlertStockSelect();
+      alert('삭제되었습니다.');
+    } else {
+      alert(result.message || '삭제 실패');
+    }
+  } catch (error) {
+    console.error('미국 포트폴리오 삭제 오류:', error);
+    alert('오류가 발생했습니다.');
   }
 }
+
+
 
 function updateUsAlertStockSelect() {
   var select = document.getElementById('us-alert-stock-select');
