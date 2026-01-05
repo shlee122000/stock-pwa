@@ -16,7 +16,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <!-- CSS -->
-  <link rel="stylesheet" href="/css/styles.css?v=63">
+  <link rel="stylesheet" href="/css/styles.css?v=64">
 </head>
 <body>
   <div class="app-container">
@@ -2363,6 +2363,18 @@
           <h2>🔍 매수 종목 찾기</h2>
         </div>
         
+        <!-- 시가총액별 TOP 10 -->
+        <div class="card">
+          <h3>📊 시가총액별 TOP 10</h3>
+          <p style="color:#666; margin-bottom:15px;">시가총액 규모별로 기술적 분석 점수가 높은 종목</p>
+          <div style="margin-bottom:15px;">
+            <button id="ai-large-cap-btn" class="btn-primary">🏢 대형주</button>
+            <button id="ai-mid-cap-btn" class="btn-secondary">🏠 중형주</button>
+            <button id="ai-small-cap-btn" class="btn-secondary">🏪 소형주</button>
+            </div>
+            <div id="ai-cap-result-container"></div>
+        </div>
+
         <div class="card">
           <h3>🔥 Hot 테마 TOP 10</h3>
           <p style="color:#666; margin-bottom:15px;">오늘 가장 상승률이 높은 테마입니다.</p>
@@ -2593,31 +2605,6 @@
         </div>
         <p style="color:#666; margin-bottom:20px;">AI가 시가총액별, 테마별로 종목을 분석하여 객관적인 점수를 제공합니다</p>
         
-        <!-- 시가총액별 TOP 10 -->
-        <div class="card">
-          <h3>📊 시가총액별 TOP 10</h3>
-          <p style="color:#666; margin-bottom:15px;">시가총액 규모별로 기술적 분석 점수가 높은 종목</p>
-          <div style="margin-bottom:15px;">
-            <button id="ai-large-cap-btn" class="btn-primary">🏢 대형주</button>
-            <button id="ai-mid-cap-btn" class="btn-secondary">🏠 중형주</button>
-            <button id="ai-small-cap-btn" class="btn-secondary">🏪 소형주</button>
-          </div>
-          <div id="ai-cap-result-container"></div>
-        </div>
-        
-        <!-- 테마별 TOP 10 -->
-        <div class="card" style="margin-top:20px;">
-          <h3>🎯 테마별 TOP 10</h3>
-          <p style="color:#666; margin-bottom:15px;">선택한 테마 내에서 기술적 분석 점수가 높은 종목</p>
-          <div class="search-box">
-            <select id="ai-theme-select">
-              <option value="">-- 테마 선택 --</option>
-            </select>
-            <button id="ai-theme-analyze-btn">분석하기</button>
-          </div>
-          <div id="ai-theme-result-container" style="margin-top:15px;"></div>
-        </div>
-        
 
         <!-- 직접 검색 -->
         <div class="card" style="margin-top:20px;">
@@ -2824,7 +2811,7 @@
   </div>
   
   <!-- JavaScript -->
-    <script src="/js/app.js?v=63"></script>
+    <script src="/js/app.js?v=64"></script>
   
 
   <!--  
@@ -2915,7 +2902,7 @@
 <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
 
 <!-- 2. 내부 유틸리티 -->
-<script src="/js/cache-manager.js?v=63"></script>
+<script src="/js/cache-manager.js?v=64"></script>
 
   
 </body>

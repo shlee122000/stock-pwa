@@ -1678,7 +1678,7 @@ function initEventListeners() {
   document.getElementById('ai-large-cap-btn').addEventListener('click', function() { loadAiByMarketCap('large'); });
   document.getElementById('ai-mid-cap-btn').addEventListener('click', function() { loadAiByMarketCap('mid'); });
   document.getElementById('ai-small-cap-btn').addEventListener('click', function() { loadAiByMarketCap('small'); });
-  document.getElementById('ai-theme-analyze-btn').addEventListener('click', loadAiByTheme);
+  //document.getElementById('ai-theme-analyze-btn').addEventListener('click', loadAiByTheme);
   document.getElementById('ai-analyze-btn').addEventListener('click', aiAnalyzeStock);
   document.getElementById('ai-stock-input').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') aiAnalyzeStock();
