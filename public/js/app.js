@@ -1784,6 +1784,17 @@ function initTabs() {
       if (tabId === 'signals' && selectedKoreaStock) {
         document.getElementById('signal-stock-code').value = selectedKoreaStock;
       }
+
+      // 포트폴리오 탭 클릭 시 데이터 로드
+      if (tabId === 'portfolio') {
+        loadPortfolio();
+        loadUsPortfolio();
+      }
+      
+      // 대시보드 탭 클릭 시 데이터 로드
+      if (tabId === 'dashboard') {
+        loadDashboard();
+      }
       
       // 모바일 메뉴 닫기
       document.querySelector('.sidebar').classList.remove('open');
