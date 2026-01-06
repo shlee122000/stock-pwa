@@ -3029,7 +3029,7 @@ async function loadWatchlist() {
     }
     
     var watchlistData = result.data;
-    var html = '<table><thead><tr><th>종목명</th><th>코드</th><th>현재가</th><th>등락</th><th>기능</th></tr></thead><tbody>';
+    var html = '<table><thead><tr><th>종목</th><th>현재가</th><th>등락</th><th>기능</th></tr></thead><tbody>';
     
     for (var i = 0; i < watchlistData.length; i++) {
       var item = watchlistData[i];
@@ -3042,8 +3042,7 @@ async function loadWatchlist() {
       var changeText = data ? (change >= 0 ? '+' : '') + change.toLocaleString() : '--';
       
       html += '<tr>';
-      html += '<td><strong>' + (item.stock_name || item.stock_code) + '</strong></td>';
-      html += '<td>' + item.stock_code + '</td>';
+      html += '<td><strong>' + (item.stock_name || item.stock_code) + '</strong><br><small style="color:#666;">' + item.stock_code + '</small></td>';
       html += '<td>' + price + '</td>';
       html += '<td class="' + changeClass + '">' + changeText + '</td>';
       html += '<td>';
@@ -3060,7 +3059,6 @@ async function loadWatchlist() {
     container.innerHTML = '<p>관심종목을 불러올 수 없습니다.</p>';
   }
 }
-
 
 
 async function removeFromWatchlist(code) {
@@ -3412,7 +3410,7 @@ async function loadUsWatchlist() {
     }
     
     var watchlistData = result.data;
-    var html = '<table><thead><tr><th>종목명</th><th>심볼</th><th>현재가</th><th>등락</th><th>기능</th></tr></thead><tbody>';
+    var html = '<table><thead><tr><th>종목</th><th>현재가</th><th>등락</th><th>기능</th></tr></thead><tbody>';
     
     for (var i = 0; i < watchlistData.length; i++) {
       var item = watchlistData[i];
@@ -3426,8 +3424,7 @@ async function loadUsWatchlist() {
       var changeText = data ? (change >= 0 ? '+' : '') + change.toFixed(2) + ' (' + (changePercent >= 0 ? '+' : '') + changePercent.toFixed(2) + '%)' : '--';
       
       html += '<tr>';
-      html += '<td><strong>' + (item.stock_name || item.stock_code) + '</strong></td>';
-      html += '<td>' + item.stock_code + '</td>';
+      html += '<td><strong>' + (item.stock_name || item.stock_code) + '</strong><br><small style="color:#666;">' + item.stock_code + '</small></td>';
       html += '<td>' + price + '</td>';
       html += '<td class="' + changeClass + '">' + changeText + '</td>';
       html += '<td>';
@@ -3801,7 +3798,7 @@ async function loadPortfolio() {
       totalValue += valueAmt;
       
       html += '<tr>';
-      html += '<td><strong>' + (item.stock_name || item.stock_code) + '</strong></td>';
+      html += '<td><strong>' + (item.stock_name || item.stock_code) + '</strong><br><small style="color:#666;">' + item.stock_code + '</small></td>';
       html += '<td>' + item.quantity + '주</td>';
       html += '<td>' + Number(item.buy_price).toLocaleString() + '원</td>';
       html += '<td>' + (currentPrice > 0 ? currentPrice.toLocaleString() + '원' : '--') + '</td>';
