@@ -496,7 +496,7 @@ function displayPatternResults(patterns, container) {
 
 // ==================== 분석 메모 ====================
 // 메모 저장
-function saveMemo(stockCode) {
+async function saveMemo(stockCode) {
   var memo = document.getElementById('analysis-memo').value;
   if (!stockCode) {
     stockCode = document.getElementById('analysis-stock-code').value;
@@ -507,35 +507,90 @@ function saveMemo(stockCode) {
     return;
   }
   
-  var memos = JSON.parse(localStorage.getItem('stockMemos')) || {};
-  memos[stockCode] = {
-    text: memo,
-    date: new Date().toLocaleString('ko-KR')
-  };
-  localStorage.setItem('stockMemos', JSON.stringify(memos));
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    // 로그인 안 된 경우 localStorage 사용
+    var memos = JSON.parse(localStorage.getItem('stockMemos')) || {};
+    memos[stockCode] = {
+      text: memo,
+      date: new Date().toLocaleString('ko-KR')
+    };
+    localStorage.setItem('stockMemos', JSON.stringify(memos));
+    document.getElementById('memo-status').innerHTML = 
+      '<span style="color:#10b981;">✅ 메모가 저장되었습니다. (로컬)</span>';
+    return;
+  }
   
-  document.getElementById('memo-status').innerHTML = 
-    '<span style="color:#10b981;">✅ 메모가 저장되었습니다. (' + memos[stockCode].date + ')</span>';
+  try {
+    var result = await fetch(API_BASE + '/api/memos/save', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({
+        stockCode: stockCode,
+        memoText: memo,
+        market: 'korea'
+      })
+    }).then(function(res) { return res.json(); });
+    
+    if (result.success) {
+      document.getElementById('memo-status').innerHTML = 
+        '<span style="color:#10b981;">✅ 메모가 저장되었습니다. (' + new Date().toLocaleString('ko-KR') + ')</span>';
+    } else {
+      alert(result.message || '메모 저장 실패');
+    }
+  } catch (error) {
+    console.error('메모 저장 오류:', error);
+    alert('메모 저장 중 오류가 발생했습니다.');
+  }
 }
 
 // 메모 불러오기
-function loadMemo(stockCode) {
-  var memos = JSON.parse(localStorage.getItem('stockMemos')) || {};
+async function loadMemo(stockCode) {
   var memoArea = document.getElementById('analysis-memo');
   var statusArea = document.getElementById('memo-status');
   
-  if (memos[stockCode]) {
-    memoArea.value = memos[stockCode].text;
-    statusArea.innerHTML = 
-      '<span style="color:#3b82f6;">📅 마지막 저장: ' + memos[stockCode].date + '</span>';
-  } else {
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    // 로그인 안 된 경우 localStorage 사용
+    var memos = JSON.parse(localStorage.getItem('stockMemos')) || {};
+    if (memos[stockCode]) {
+      memoArea.value = memos[stockCode].text;
+      statusArea.innerHTML = 
+        '<span style="color:#3b82f6;">📅 마지막 저장: ' + memos[stockCode].date + ' (로컬)</span>';
+    } else {
+      memoArea.value = '';
+      statusArea.innerHTML = '<span style="color:#999;">저장된 메모가 없습니다.</span>';
+    }
+    return;
+  }
+  
+  try {
+    var result = await fetch(API_BASE + '/api/memos/' + stockCode + '?market=korea', {
+      headers: {
+        'Authorization': token
+      }
+    }).then(function(res) { return res.json(); });
+    
+    if (result.success && result.data) {
+      memoArea.value = result.data.memo_text || '';
+      statusArea.innerHTML = 
+        '<span style="color:#3b82f6;">📅 마지막 저장: ' + new Date(result.data.updated_at).toLocaleString('ko-KR') + '</span>';
+    } else {
+      memoArea.value = '';
+      statusArea.innerHTML = '<span style="color:#999;">저장된 메모가 없습니다.</span>';
+    }
+  } catch (error) {
+    console.error('메모 불러오기 오류:', error);
     memoArea.value = '';
-    statusArea.innerHTML = '<span style="color:#999;">저장된 메모가 없습니다.</span>';
+    statusArea.innerHTML = '<span style="color:#999;">메모를 불러올 수 없습니다.</span>';
   }
 }
 
 // 메모 삭제
-function deleteMemo(stockCode) {
+async function deleteMemo(stockCode) {
   if (!stockCode) {
     stockCode = document.getElementById('analysis-stock-code').value;
   }
@@ -549,19 +604,48 @@ function deleteMemo(stockCode) {
     return;
   }
   
-  var memos = JSON.parse(localStorage.getItem('stockMemos')) || {};
-  delete memos[stockCode];
-  localStorage.setItem('stockMemos', JSON.stringify(memos));
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    // 로그인 안 된 경우 localStorage 사용
+    var memos = JSON.parse(localStorage.getItem('stockMemos')) || {};
+    delete memos[stockCode];
+    localStorage.setItem('stockMemos', JSON.stringify(memos));
+    document.getElementById('analysis-memo').value = '';
+    document.getElementById('memo-status').innerHTML = 
+      '<span style="color:#ef4444;">🗑️ 메모가 삭제되었습니다.</span>';
+    return;
+  }
   
-  document.getElementById('analysis-memo').value = '';
-  document.getElementById('memo-status').innerHTML = 
-    '<span style="color:#ef4444;">🗑️ 메모가 삭제되었습니다.</span>';
+  try {
+    var result = await fetch(API_BASE + '/api/memos/delete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({
+        stockCode: stockCode,
+        market: 'korea'
+      })
+    }).then(function(res) { return res.json(); });
+    
+    if (result.success) {
+      document.getElementById('analysis-memo').value = '';
+      document.getElementById('memo-status').innerHTML = 
+        '<span style="color:#ef4444;">🗑️ 메모가 삭제되었습니다.</span>';
+    } else {
+      alert(result.message || '메모 삭제 실패');
+    }
+  } catch (error) {
+    console.error('메모 삭제 오류:', error);
+    alert('메모 삭제 중 오류가 발생했습니다.');
+  }
 }
 
 
 // ==================== 미국 주식 분석 메모 ====================
 // 미국 주식 메모 저장
-function saveUsMemo(symbol) {
+async function saveUsMemo(symbol) {
   var memo = document.getElementById('us-analysis-memo').value;
   if (!symbol && selectedUsStock) {
     symbol = selectedUsStock.symbol;
@@ -572,20 +656,48 @@ function saveUsMemo(symbol) {
     return;
   }
   
-  var memos = JSON.parse(localStorage.getItem('usStockMemos')) || {};
-  memos[symbol] = {
-    text: memo,
-    date: new Date().toLocaleString('ko-KR')
-  };
-  localStorage.setItem('usStockMemos', JSON.stringify(memos));
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    // 로그인 안 된 경우 localStorage 사용
+    var memos = JSON.parse(localStorage.getItem('usStockMemos')) || {};
+    memos[symbol] = {
+      text: memo,
+      date: new Date().toLocaleString('ko-KR')
+    };
+    localStorage.setItem('usStockMemos', JSON.stringify(memos));
+    document.getElementById('us-memo-status').innerHTML = 
+      '<span style="color:#10b981;">✅ 메모가 저장되었습니다. (로컬)</span>';
+    return;
+  }
   
-  document.getElementById('us-memo-status').innerHTML = 
-    '<span style="color:#10b981;">✅ 메모가 저장되었습니다. (' + memos[symbol].date + ')</span>';
+  try {
+    var result = await fetch(API_BASE + '/api/memos/save', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({
+        stockCode: symbol,
+        memoText: memo,
+        market: 'us'
+      })
+    }).then(function(res) { return res.json(); });
+    
+    if (result.success) {
+      document.getElementById('us-memo-status').innerHTML = 
+        '<span style="color:#10b981;">✅ 메모가 저장되었습니다. (' + new Date().toLocaleString('ko-KR') + ')</span>';
+    } else {
+      alert(result.message || '메모 저장 실패');
+    }
+  } catch (error) {
+    console.error('메모 저장 오류:', error);
+    alert('메모 저장 중 오류가 발생했습니다.');
+  }
 }
 
 // 미국 주식 메모 불러오기
-function loadUsMemo(symbol) {
-  var memos = JSON.parse(localStorage.getItem('usStockMemos')) || {};
+async function loadUsMemo(symbol) {
   var memoArea = document.getElementById('us-analysis-memo');
   var statusArea = document.getElementById('us-memo-status');
   var memoCard = document.getElementById('us-memo-card');
@@ -594,18 +706,45 @@ function loadUsMemo(symbol) {
     memoCard.style.display = 'block';
   }
   
-  if (memos[symbol]) {
-    memoArea.value = memos[symbol].text;
-    statusArea.innerHTML = 
-      '<span style="color:#3b82f6;">📅 마지막 저장: ' + memos[symbol].date + '</span>';
-  } else {
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    // 로그인 안 된 경우 localStorage 사용
+    var memos = JSON.parse(localStorage.getItem('usStockMemos')) || {};
+    if (memos[symbol]) {
+      memoArea.value = memos[symbol].text;
+      statusArea.innerHTML = 
+        '<span style="color:#3b82f6;">📅 마지막 저장: ' + memos[symbol].date + ' (로컬)</span>';
+    } else {
+      memoArea.value = '';
+      statusArea.innerHTML = '<span style="color:#999;">저장된 메모가 없습니다.</span>';
+    }
+    return;
+  }
+  
+  try {
+    var result = await fetch(API_BASE + '/api/memos/' + symbol + '?market=us', {
+      headers: {
+        'Authorization': token
+      }
+    }).then(function(res) { return res.json(); });
+    
+    if (result.success && result.data) {
+      memoArea.value = result.data.memo_text || '';
+      statusArea.innerHTML = 
+        '<span style="color:#3b82f6;">📅 마지막 저장: ' + new Date(result.data.updated_at).toLocaleString('ko-KR') + '</span>';
+    } else {
+      memoArea.value = '';
+      statusArea.innerHTML = '<span style="color:#999;">저장된 메모가 없습니다.</span>';
+    }
+  } catch (error) {
+    console.error('메모 불러오기 오류:', error);
     memoArea.value = '';
-    statusArea.innerHTML = '<span style="color:#999;">저장된 메모가 없습니다.</span>';
+    statusArea.innerHTML = '<span style="color:#999;">메모를 불러올 수 없습니다.</span>';
   }
 }
 
 // 미국 주식 메모 삭제
-function deleteUsMemo(symbol) {
+async function deleteUsMemo(symbol) {
   if (!symbol && selectedUsStock) {
     symbol = selectedUsStock.symbol;
   }
@@ -619,13 +758,341 @@ function deleteUsMemo(symbol) {
     return;
   }
   
-  var memos = JSON.parse(localStorage.getItem('usStockMemos')) || {};
-  delete memos[symbol];
-  localStorage.setItem('usStockMemos', JSON.stringify(memos));
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    // 로그인 안 된 경우 localStorage 사용
+    var memos = JSON.parse(localStorage.getItem('usStockMemos')) || {};
+    delete memos[symbol];
+    localStorage.setItem('usStockMemos', JSON.stringify(memos));
+    document.getElementById('us-analysis-memo').value = '';
+    document.getElementById('us-memo-status').innerHTML = 
+      '<span style="color:#ef4444;">🗑️ 메모가 삭제되었습니다.</span>';
+    return;
+  }
   
-  document.getElementById('us-analysis-memo').value = '';
-  document.getElementById('us-memo-status').innerHTML = 
-    '<span style="color:#ef4444;">🗑️ 메모가 삭제되었습니다.</span>';
+  try {
+    var result = await fetch(API_BASE + '/api/memos/delete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({
+        stockCode: symbol,
+        market: 'us'
+      })
+    }).then(function(res) { return res.json(); });
+    
+    if (result.success) {
+      document.getElementById('us-analysis-memo').value = '';
+      document.getElementById('us-memo-status').innerHTML = 
+        '<span style="color:#ef4444;">🗑️ 메모가 삭제되었습니다.</span>';
+    } else {
+      alert(result.message || '메모 삭제 실패');
+    }
+  } catch (error) {
+    console.error('메모 삭제 오류:', error);
+    alert('메모 삭제 중 오류가 발생했습니다.');
+  }
+}
+async function saveMemo(stockCode) {
+  var memo = document.getElementById('analysis-memo').value;
+  if (!stockCode) {
+    stockCode = document.getElementById('analysis-stock-code').value;
+  }
+  
+  if (!stockCode) {
+    alert('종목코드를 먼저 입력하세요.');
+    return;
+  }
+  
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    // 로그인 안 된 경우 localStorage 사용
+    var memos = JSON.parse(localStorage.getItem('stockMemos')) || {};
+    memos[stockCode] = {
+      text: memo,
+      date: new Date().toLocaleString('ko-KR')
+    };
+    localStorage.setItem('stockMemos', JSON.stringify(memos));
+    document.getElementById('memo-status').innerHTML = 
+      '<span style="color:#10b981;">✅ 메모가 저장되었습니다. (로컬)</span>';
+    return;
+  }
+  
+  try {
+    var result = await fetch(API_BASE + '/api/memos/save', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({
+        stockCode: stockCode,
+        memoText: memo,
+        market: 'korea'
+      })
+    }).then(function(res) { return res.json(); });
+    
+    if (result.success) {
+      document.getElementById('memo-status').innerHTML = 
+        '<span style="color:#10b981;">✅ 메모가 저장되었습니다. (' + new Date().toLocaleString('ko-KR') + ')</span>';
+    } else {
+      alert(result.message || '메모 저장 실패');
+    }
+  } catch (error) {
+    console.error('메모 저장 오류:', error);
+    alert('메모 저장 중 오류가 발생했습니다.');
+  }
+}
+
+// 메모 불러오기
+async function loadMemo(stockCode) {
+  var memoArea = document.getElementById('analysis-memo');
+  var statusArea = document.getElementById('memo-status');
+  
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    // 로그인 안 된 경우 localStorage 사용
+    var memos = JSON.parse(localStorage.getItem('stockMemos')) || {};
+    if (memos[stockCode]) {
+      memoArea.value = memos[stockCode].text;
+      statusArea.innerHTML = 
+        '<span style="color:#3b82f6;">📅 마지막 저장: ' + memos[stockCode].date + ' (로컬)</span>';
+    } else {
+      memoArea.value = '';
+      statusArea.innerHTML = '<span style="color:#999;">저장된 메모가 없습니다.</span>';
+    }
+    return;
+  }
+  
+  try {
+    var result = await fetch(API_BASE + '/api/memos/' + stockCode + '?market=korea', {
+      headers: {
+        'Authorization': token
+      }
+    }).then(function(res) { return res.json(); });
+    
+    if (result.success && result.data) {
+      memoArea.value = result.data.memo_text || '';
+      statusArea.innerHTML = 
+        '<span style="color:#3b82f6;">📅 마지막 저장: ' + new Date(result.data.updated_at).toLocaleString('ko-KR') + '</span>';
+    } else {
+      memoArea.value = '';
+      statusArea.innerHTML = '<span style="color:#999;">저장된 메모가 없습니다.</span>';
+    }
+  } catch (error) {
+    console.error('메모 불러오기 오류:', error);
+    memoArea.value = '';
+    statusArea.innerHTML = '<span style="color:#999;">메모를 불러올 수 없습니다.</span>';
+  }
+}
+
+// 메모 삭제
+async function deleteMemo(stockCode) {
+  if (!stockCode) {
+    stockCode = document.getElementById('analysis-stock-code').value;
+  }
+  
+  if (!stockCode) {
+    alert('종목코드를 먼저 입력하세요.');
+    return;
+  }
+  
+  if (!confirm('이 종목의 메모를 삭제하시겠습니까?')) {
+    return;
+  }
+  
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    // 로그인 안 된 경우 localStorage 사용
+    var memos = JSON.parse(localStorage.getItem('stockMemos')) || {};
+    delete memos[stockCode];
+    localStorage.setItem('stockMemos', JSON.stringify(memos));
+    document.getElementById('analysis-memo').value = '';
+    document.getElementById('memo-status').innerHTML = 
+      '<span style="color:#ef4444;">🗑️ 메모가 삭제되었습니다.</span>';
+    return;
+  }
+  
+  try {
+    var result = await fetch(API_BASE + '/api/memos/delete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({
+        stockCode: stockCode,
+        market: 'korea'
+      })
+    }).then(function(res) { return res.json(); });
+    
+    if (result.success) {
+      document.getElementById('analysis-memo').value = '';
+      document.getElementById('memo-status').innerHTML = 
+        '<span style="color:#ef4444;">🗑️ 메모가 삭제되었습니다.</span>';
+    } else {
+      alert(result.message || '메모 삭제 실패');
+    }
+  } catch (error) {
+    console.error('메모 삭제 오류:', error);
+    alert('메모 삭제 중 오류가 발생했습니다.');
+  }
+}
+
+
+// ==================== 미국 주식 분석 메모 ====================
+// 미국 주식 메모 저장
+async function saveUsMemo(symbol) {
+  var memo = document.getElementById('us-analysis-memo').value;
+  if (!symbol && selectedUsStock) {
+    symbol = selectedUsStock.symbol;
+  }
+  
+  if (!symbol) {
+    alert('종목을 먼저 검색하세요.');
+    return;
+  }
+  
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    // 로그인 안 된 경우 localStorage 사용
+    var memos = JSON.parse(localStorage.getItem('usStockMemos')) || {};
+    memos[symbol] = {
+      text: memo,
+      date: new Date().toLocaleString('ko-KR')
+    };
+    localStorage.setItem('usStockMemos', JSON.stringify(memos));
+    document.getElementById('us-memo-status').innerHTML = 
+      '<span style="color:#10b981;">✅ 메모가 저장되었습니다. (로컬)</span>';
+    return;
+  }
+  
+  try {
+    var result = await fetch(API_BASE + '/api/memos/save', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({
+        stockCode: symbol,
+        memoText: memo,
+        market: 'us'
+      })
+    }).then(function(res) { return res.json(); });
+    
+    if (result.success) {
+      document.getElementById('us-memo-status').innerHTML = 
+        '<span style="color:#10b981;">✅ 메모가 저장되었습니다. (' + new Date().toLocaleString('ko-KR') + ')</span>';
+    } else {
+      alert(result.message || '메모 저장 실패');
+    }
+  } catch (error) {
+    console.error('메모 저장 오류:', error);
+    alert('메모 저장 중 오류가 발생했습니다.');
+  }
+}
+
+// 미국 주식 메모 불러오기
+async function loadUsMemo(symbol) {
+  var memoArea = document.getElementById('us-analysis-memo');
+  var statusArea = document.getElementById('us-memo-status');
+  var memoCard = document.getElementById('us-memo-card');
+  
+  if (memoCard) {
+    memoCard.style.display = 'block';
+  }
+  
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    // 로그인 안 된 경우 localStorage 사용
+    var memos = JSON.parse(localStorage.getItem('usStockMemos')) || {};
+    if (memos[symbol]) {
+      memoArea.value = memos[symbol].text;
+      statusArea.innerHTML = 
+        '<span style="color:#3b82f6;">📅 마지막 저장: ' + memos[symbol].date + ' (로컬)</span>';
+    } else {
+      memoArea.value = '';
+      statusArea.innerHTML = '<span style="color:#999;">저장된 메모가 없습니다.</span>';
+    }
+    return;
+  }
+  
+  try {
+    var result = await fetch(API_BASE + '/api/memos/' + symbol + '?market=us', {
+      headers: {
+        'Authorization': token
+      }
+    }).then(function(res) { return res.json(); });
+    
+    if (result.success && result.data) {
+      memoArea.value = result.data.memo_text || '';
+      statusArea.innerHTML = 
+        '<span style="color:#3b82f6;">📅 마지막 저장: ' + new Date(result.data.updated_at).toLocaleString('ko-KR') + '</span>';
+    } else {
+      memoArea.value = '';
+      statusArea.innerHTML = '<span style="color:#999;">저장된 메모가 없습니다.</span>';
+    }
+  } catch (error) {
+    console.error('메모 불러오기 오류:', error);
+    memoArea.value = '';
+    statusArea.innerHTML = '<span style="color:#999;">메모를 불러올 수 없습니다.</span>';
+  }
+}
+
+// 미국 주식 메모 삭제
+async function deleteUsMemo(symbol) {
+  if (!symbol && selectedUsStock) {
+    symbol = selectedUsStock.symbol;
+  }
+  
+  if (!symbol) {
+    alert('종목을 먼저 검색하세요.');
+    return;
+  }
+  
+  if (!confirm('이 종목의 메모를 삭제하시겠습니까?')) {
+    return;
+  }
+  
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    // 로그인 안 된 경우 localStorage 사용
+    var memos = JSON.parse(localStorage.getItem('usStockMemos')) || {};
+    delete memos[symbol];
+    localStorage.setItem('usStockMemos', JSON.stringify(memos));
+    document.getElementById('us-analysis-memo').value = '';
+    document.getElementById('us-memo-status').innerHTML = 
+      '<span style="color:#ef4444;">🗑️ 메모가 삭제되었습니다.</span>';
+    return;
+  }
+  
+  try {
+    var result = await fetch(API_BASE + '/api/memos/delete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({
+        stockCode: symbol,
+        market: 'us'
+      })
+    }).then(function(res) { return res.json(); });
+    
+    if (result.success) {
+      document.getElementById('us-analysis-memo').value = '';
+      document.getElementById('us-memo-status').innerHTML = 
+        '<span style="color:#ef4444;">🗑️ 메모가 삭제되었습니다.</span>';
+    } else {
+      alert(result.message || '메모 삭제 실패');
+    }
+  } catch (error) {
+    console.error('메모 삭제 오류:', error);
+    alert('메모 삭제 중 오류가 발생했습니다.');
+  }
 }
 
 
@@ -1711,7 +2178,11 @@ function initEventListeners() {
       if (e.key === 'Enter') addAiPortfolioStock();
     });
   }
-  document.getElementById('ai-portfolio-analyze-btn').addEventListener('click', analyzeAiPortfolio);
+
+  var aiPortfolioBtn = document.getElementById('ai-portfolio-analyze-btn');
+    if (aiPortfolioBtn) {
+      aiPortfolioBtn.addEventListener('click', analyzeAiPortfolio);
+    }
 
   // AI 뉴스 감성 분석
   document.getElementById('ai-sentiment-btn').addEventListener('click', analyzeAiSentiment);
@@ -1719,25 +2190,37 @@ function initEventListeners() {
     if (e.key === 'Enter') analyzeAiSentiment();
   });
 
-  // 분석 메모 저장 버튼
-  document.getElementById('save-memo-btn').addEventListener('click', function() {
-    saveMemo();
-  });
+// 분석 메모 저장 버튼
+  var saveMemoBtn = document.getElementById('save-memo-btn');
+  if (saveMemoBtn) {
+    saveMemoBtn.addEventListener('click', function() {
+      saveMemo();
+    });
+  }
   
   // 분석 메모 삭제 버튼
-  document.getElementById('delete-memo-btn').addEventListener('click', function() {
-    deleteMemo();
-  });
+  var deleteMemoBtn = document.getElementById('delete-memo-btn');
+  if (deleteMemoBtn) {
+    deleteMemoBtn.addEventListener('click', function() {
+      deleteMemo();
+    });
+  }
 
   // 미국 주식 분석 메모 저장 버튼
-  document.getElementById('us-save-memo-btn').addEventListener('click', function() {
-    saveUsMemo();
-  });
+  var usSaveMemoBtn = document.getElementById('us-save-memo-btn');
+  if (usSaveMemoBtn) {
+    usSaveMemoBtn.addEventListener('click', function() {
+      saveUsMemo();
+    });
+  }
   
   // 미국 주식 분석 메모 삭제 버튼
-  document.getElementById('us-delete-memo-btn').addEventListener('click', function() {
-    deleteUsMemo();
-  });
+  var usDeleteMemoBtn = document.getElementById('us-delete-memo-btn');
+  if (usDeleteMemoBtn) {
+    usDeleteMemoBtn.addEventListener('click', function() {
+      deleteUsMemo();
+    });
+  }
 
   // ===== 차트 패턴 분석 (한국 주식) =====
   var analyzePatternBtn = document.getElementById('analyzePatternBtn');
@@ -2817,29 +3300,43 @@ async function drawUsStockChart(symbol) {
 }
 
 
-function handleAddUsWatchlist() {
+async function handleAddUsWatchlist() {
   if (!selectedUsStock) {
     alert('먼저 종목을 선택하세요.');
     return;
   }
   
-  if (usWatchlist.find(function(item) { return item.symbol === selectedUsStock.symbol; })) {
-    alert('이미 관심 종목에 있습니다.');
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    alert('로그인이 필요합니다.');
     return;
   }
   
-  usWatchlist.push({
-    symbol: selectedUsStock.symbol,
-    name: selectedUsStock.name,
-    addedAt: new Date().toISOString()
-  });
-  
-  localStorage.setItem('usWatchlist', JSON.stringify(usWatchlist));
-  alert(selectedUsStock.symbol + ' 추가되었습니다!');
-  loadUsWatchlist();
-  
-  selectedUsStock = null;
-  document.getElementById('us-watchlist-btn-area').style.display = 'none';
+  try {
+    var result = await fetch(API_BASE + '/api/watchlist/us/add', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({
+        stockCode: selectedUsStock.symbol,
+        stockName: selectedUsStock.name
+      })
+    }).then(function(res) { return res.json(); });
+    
+    if (result.success) {
+      alert(selectedUsStock.symbol + ' 추가되었습니다!');
+      loadUsWatchlist();
+      selectedUsStock = null;
+      document.getElementById('us-watchlist-btn-area').style.display = 'none';
+    } else {
+      alert(result.message || '추가 실패');
+    }
+  } catch (error) {
+    console.error('미국 관심종목 추가 오류:', error);
+    alert('오류가 발생했습니다.');
+  }
 }
 
 
@@ -2852,32 +3349,38 @@ async function handleAddUsWatchlistDirect() {
     return;
   }
   
-  // 중복 체크
-  if (usWatchlist.find(function(item) { return item.symbol === symbol; })) {
-    alert('이미 관심 종목에 있습니다.');
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    alert('로그인이 필요합니다.');
     return;
   }
   
-  // 종목 정보 조회
   showLoading();
   try {
-    var result = await apiCall('/api/us/quote/' + symbol);
+    // 종목 정보 조회
+    var quoteResult = await apiCall('/api/us/quote/' + symbol);
     
-    if (result.success && result.data) {
-      usWatchlist.push({
-        symbol: symbol,
-        name: result.data.name || symbol,
-        addedAt: new Date().toISOString()
-      });
+    if (quoteResult.success && quoteResult.data) {
+      // 서버에 저장
+      var result = await fetch(API_BASE + '/api/watchlist/us/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({
+          stockCode: symbol,
+          stockName: quoteResult.data.name || symbol
+        })
+      }).then(function(res) { return res.json(); });
       
-      localStorage.setItem('usWatchlist', JSON.stringify(usWatchlist));
-      alert(symbol + ' 추가되었습니다!');
-      
-      // 입력창 초기화
-      document.getElementById('us-watchlist-add-input').value = '';
-      
-      // 목록 새로고침
-      loadUsWatchlist();
+      if (result.success) {
+        alert(symbol + ' 추가되었습니다!');
+        document.getElementById('us-watchlist-add-input').value = '';
+        loadUsWatchlist();
+      } else {
+        alert(result.message || '추가 실패');
+      }
     } else {
       alert('종목을 찾을 수 없습니다. 심볼을 확인하세요.');
     }
@@ -2892,38 +3395,54 @@ async function handleAddUsWatchlistDirect() {
 async function loadUsWatchlist() {
   var container = document.getElementById('us-watchlist-container');
   
-  if (usWatchlist.length === 0) {
-    container.innerHTML = '<p>관심 종목이 없습니다.</p>';
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    container.innerHTML = '<p>로그인하면 관심종목을 저장할 수 있습니다.</p>';
     return;
   }
   
-  var html = '<table><thead><tr><th>종목명</th><th>심볼</th><th>현재가</th><th>등락</th><th>기능</th></tr></thead><tbody>';
-  
-  for (var i = 0; i < usWatchlist.length; i++) {
-    var item = usWatchlist[i];
-    var result = await apiCall('/api/us/quote/' + item.symbol);
-    var data = result.success ? result.data : null;
+  try {
+    var result = await fetch(API_BASE + '/api/watchlist/us', {
+      headers: { 'Authorization': token }
+    }).then(function(res) { return res.json(); });
     
-    var price = data ? '$' + data.price.toFixed(2) : '--';
-    var change = data ? data.change : 0;
-    var changePercent = data ? data.changePercent : 0;
-    var changeClass = change >= 0 ? 'positive' : 'negative';
-    var changeText = data ? (change >= 0 ? '+' : '') + change.toFixed(2) + ' (' + (changePercent >= 0 ? '+' : '') + changePercent.toFixed(2) + '%)' : '--';
+    if (!result.success || !result.data || result.data.length === 0) {
+      container.innerHTML = '<p>관심 종목이 없습니다.</p>';
+      return;
+    }
     
-    html += '<tr>';
-    html += '<td><strong>' + item.name + '</strong></td>';
-    html += '<td>' + item.symbol + '</td>';
-    html += '<td>' + price + '</td>';
-    html += '<td class="' + changeClass + '">' + changeText + '</td>';
-    html += '<td>';
-    html += '<button onclick="showUsStockChart(\'' + item.symbol + '\')">차트</button> ';
-    html += '<button class="btn-danger" onclick="removeFromUsWatchlist(\'' + item.symbol + '\')">삭제</button>';
-    html += '</td>';
-    html += '</tr>';
+    var watchlistData = result.data;
+    var html = '<table><thead><tr><th>종목명</th><th>심볼</th><th>현재가</th><th>등락</th><th>기능</th></tr></thead><tbody>';
+    
+    for (var i = 0; i < watchlistData.length; i++) {
+      var item = watchlistData[i];
+      var quoteResult = await apiCall('/api/us/quote/' + item.stock_code);
+      var data = quoteResult.success ? quoteResult.data : null;
+      
+      var price = data ? '$' + data.price.toFixed(2) : '--';
+      var change = data ? data.change : 0;
+      var changePercent = data ? data.changePercent : 0;
+      var changeClass = change >= 0 ? 'positive' : 'negative';
+      var changeText = data ? (change >= 0 ? '+' : '') + change.toFixed(2) + ' (' + (changePercent >= 0 ? '+' : '') + changePercent.toFixed(2) + '%)' : '--';
+      
+      html += '<tr>';
+      html += '<td><strong>' + (item.stock_name || item.stock_code) + '</strong></td>';
+      html += '<td>' + item.stock_code + '</td>';
+      html += '<td>' + price + '</td>';
+      html += '<td class="' + changeClass + '">' + changeText + '</td>';
+      html += '<td>';
+      html += '<button onclick="showUsStockChart(\'' + item.stock_code + '\')">차트</button> ';
+      html += '<button class="btn-danger" onclick="removeFromUsWatchlist(\'' + item.stock_code + '\')">삭제</button>';
+      html += '</td>';
+      html += '</tr>';
+    }
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  } catch (error) {
+    console.error('미국 관심종목 로드 오류:', error);
+    container.innerHTML = '<p>관심종목을 불러올 수 없습니다.</p>';
   }
-  
-  html += '</tbody></table>';
-  container.innerHTML = html;
 }
 
 // 미국 주식 차트 표시
@@ -2947,11 +3466,37 @@ async function showUsStockChart(symbol) {
 
 
 
-function removeFromUsWatchlist(symbol) {
-  usWatchlist = usWatchlist.filter(function(item) { return item.symbol !== symbol; });
-  localStorage.setItem('usWatchlist', JSON.stringify(usWatchlist));
-  loadUsWatchlist();
+async function removeFromUsWatchlist(symbol) {
+  if (!confirm('정말 삭제하시겠습니까?')) return;
+  
+  var token = localStorage.getItem('authToken');
+  if (!token) {
+    alert('로그인이 필요합니다.');
+    return;
+  }
+  
+  try {
+    var result = await fetch(API_BASE + '/api/watchlist/us/remove', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({ stockCode: symbol })
+    }).then(function(res) { return res.json(); });
+    
+    if (result.success) {
+      alert('삭제되었습니다.');
+      loadUsWatchlist();
+    } else {
+      alert(result.message || '삭제 실패');
+    }
+  } catch (error) {
+    console.error('미국 관심종목 삭제 오류:', error);
+    alert('오류가 발생했습니다.');
+  }
 }
+
 
 // ==================== 테마 분석 ====================
 async function loadThemeList() {

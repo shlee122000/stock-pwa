@@ -9,7 +9,7 @@ async function getUserIdByToken(token) {
   return result.rows.length > 0 ? result.rows[0].id : null;
 }
 
-// 관심종목 조회
+// 관심종목 조회 (한국)
 router.get('/', async (req, res) => {
   try {
     const token = req.headers.authorization;
@@ -20,8 +20,8 @@ router.get('/', async (req, res) => {
     }
     
     const result = await pool.query(
-      'SELECT * FROM watchlist WHERE user_id = $1 ORDER BY created_at DESC',
-      [userId]
+      'SELECT * FROM watchlist WHERE user_id = $1 AND (market = $2 OR market IS NULL) ORDER BY created_at DESC',
+      [userId, 'korea']
     );
     
     res.json({ success: true, data: result.rows });
@@ -31,7 +31,29 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 관심종목 추가
+// 미국 관심종목 조회
+router.get('/us', async (req, res) => {
+  try {
+    const token = req.headers.authorization;
+    const userId = await getUserIdByToken(token);
+    
+    if (!userId) {
+      return res.json({ success: false, message: '로그인이 필요합니다.' });
+    }
+    
+    const result = await pool.query(
+      'SELECT * FROM watchlist WHERE user_id = $1 AND market = $2 ORDER BY created_at DESC',
+      [userId, 'us']
+    );
+    
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error('미국 관심종목 조회 오류:', error);
+    res.json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 관심종목 추가 (한국)
 router.post('/add', async (req, res) => {
   try {
     const token = req.headers.authorization;
@@ -49,8 +71,8 @@ router.post('/add', async (req, res) => {
     
     // 중복 체크
     const existing = await pool.query(
-      'SELECT id FROM watchlist WHERE user_id = $1 AND stock_code = $2',
-      [userId, stockCode]
+      'SELECT id FROM watchlist WHERE user_id = $1 AND stock_code = $2 AND (market = $3 OR market IS NULL)',
+      [userId, stockCode, 'korea']
     );
     
     if (existing.rows.length > 0) {
@@ -58,8 +80,8 @@ router.post('/add', async (req, res) => {
     }
     
     await pool.query(
-      'INSERT INTO watchlist (user_id, stock_code, stock_name) VALUES ($1, $2, $3)',
-      [userId, stockCode, stockName || '']
+      'INSERT INTO watchlist (user_id, stock_code, stock_name, market) VALUES ($1, $2, $3, $4)',
+      [userId, stockCode, stockName || '', 'korea']
     );
     
     res.json({ success: true, message: '관심종목에 추가되었습니다.' });
@@ -69,7 +91,45 @@ router.post('/add', async (req, res) => {
   }
 });
 
-// 관심종목 삭제
+// 미국 관심종목 추가
+router.post('/us/add', async (req, res) => {
+  try {
+    const token = req.headers.authorization;
+    const userId = await getUserIdByToken(token);
+    
+    if (!userId) {
+      return res.json({ success: false, message: '로그인이 필요합니다.' });
+    }
+    
+    const { stockCode, stockName } = req.body;
+    
+    if (!stockCode) {
+      return res.json({ success: false, message: '종목코드가 필요합니다.' });
+    }
+    
+    // 중복 체크
+    const existing = await pool.query(
+      'SELECT id FROM watchlist WHERE user_id = $1 AND stock_code = $2 AND market = $3',
+      [userId, stockCode, 'us']
+    );
+    
+    if (existing.rows.length > 0) {
+      return res.json({ success: false, message: '이미 등록된 종목입니다.' });
+    }
+    
+    await pool.query(
+      'INSERT INTO watchlist (user_id, stock_code, stock_name, market) VALUES ($1, $2, $3, $4)',
+      [userId, stockCode, stockName || '', 'us']
+    );
+    
+    res.json({ success: true, message: '미국 관심종목에 추가되었습니다.' });
+  } catch (error) {
+    console.error('미국 관심종목 추가 오류:', error);
+    res.json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 관심종목 삭제 (한국)
 router.post('/remove', async (req, res) => {
   try {
     const token = req.headers.authorization;
@@ -82,13 +142,37 @@ router.post('/remove', async (req, res) => {
     const { stockCode } = req.body;
     
     await pool.query(
-      'DELETE FROM watchlist WHERE user_id = $1 AND stock_code = $2',
-      [userId, stockCode]
+      'DELETE FROM watchlist WHERE user_id = $1 AND stock_code = $2 AND (market = $3 OR market IS NULL)',
+      [userId, stockCode, 'korea']
     );
     
     res.json({ success: true, message: '관심종목에서 삭제되었습니다.' });
   } catch (error) {
     console.error('관심종목 삭제 오류:', error);
+    res.json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 미국 관심종목 삭제
+router.post('/us/remove', async (req, res) => {
+  try {
+    const token = req.headers.authorization;
+    const userId = await getUserIdByToken(token);
+    
+    if (!userId) {
+      return res.json({ success: false, message: '로그인이 필요합니다.' });
+    }
+    
+    const { stockCode } = req.body;
+    
+    await pool.query(
+      'DELETE FROM watchlist WHERE user_id = $1 AND stock_code = $2 AND market = $3',
+      [userId, stockCode, 'us']
+    );
+    
+    res.json({ success: true, message: '미국 관심종목에서 삭제되었습니다.' });
+  } catch (error) {
+    console.error('미국 관심종목 삭제 오류:', error);
     res.json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
