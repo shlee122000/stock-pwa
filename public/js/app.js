@@ -12576,8 +12576,7 @@ function updateAllocationTable(allocations) {
   
   tbody.innerHTML = allocations.map(a => `
     <tr>
-      <td><strong>${a.name}</strong></td>
-      <td>${a.code}</td>
+      <td><strong>${a.name}</strong><br><small style="color:#666;">${a.code}</small></td>
       <td style="color: #3b82f6; font-weight: bold;">${(a.weight * 100).toFixed(2)}%</td>
       <td>${(a.amount / 10000).toFixed(0)} 만원</td>
       <td style="color: ${a.expectedReturn >= 0 ? '#10b981' : '#ef4444'};">
@@ -12586,6 +12585,7 @@ function updateAllocationTable(allocations) {
     </tr>
   `).join('');
 }
+
 
 // 상관관계 매트릭스 표시 (기존 API에 없으므로 임시)
 function displayCorrelationMatrix(matrix) {

@@ -655,7 +655,14 @@ tr:hover {
   display: flex;
   justify-content: space-around;
   align-items: center;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
+
+.bottom-nav-items::-webkit-scrollbar {
+  display: none;
+}
+
 
 .bottom-nav-item {
   display: flex;
@@ -668,7 +675,8 @@ tr:hover {
   font-size: 0.7rem;
   cursor: pointer;
   transition: all 0.2s;
-  min-width: 60px;
+  min-width: 50px;
+  flex-shrink: 0;
 }
 
 .bottom-nav-item .nav-icon {
