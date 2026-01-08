@@ -13,6 +13,13 @@ function generateToken() {
   return crypto.randomBytes(32).toString('hex');
 }
 
+// 토큰으로 사용자 조회
+async function getUserByToken(token) {
+  if (!token) return null;
+  const result = await pool.query('SELECT * FROM users WHERE token = $1', [token]);
+  return result.rows.length > 0 ? result.rows[0] : null;
+}
+
 // 회원가입
 router.post('/register', async (req, res) => {
   try {
@@ -43,7 +50,7 @@ router.post('/register', async (req, res) => {
     // 새 사용자 생성
     const hashedPassword = hashPassword(password);
     const result = await pool.query(
-      'INSERT INTO users (email, password, name) VALUES ($1, $2, $3) RETURNING id, email, name, plan, created_at',
+      'INSERT INTO users (email, password, name, is_active, is_admin, created_at) VALUES ($1, $2, $3, true, false, NOW()) RETURNING id, email, name, plan, created_at',
       [email, hashedPassword, name]
     );
     
@@ -73,8 +80,14 @@ router.post('/login', async (req, res) => {
     
     const user = result.rows[0];
     
+    // 비밀번호 확인
     if (user.password !== hashPassword(password)) {
       return res.json({ success: false, message: '비밀번호가 일치하지 않습니다.' });
+    }
+    
+    // 활성 상태 확인
+    if (user.is_active === false) {
+      return res.json({ success: false, message: '계정이 비활성화되었습니다. 관리자에게 문의하세요.' });
     }
     
     // 토큰 생성 및 저장
@@ -86,7 +99,13 @@ router.post('/login', async (req, res) => {
     
     // 비밀번호 제외하고 반환
     const { password: _, ...userWithoutPassword } = user;
-    res.json({ success: true, message: '로그인 성공!', user: userWithoutPassword, token });
+    res.json({ 
+      success: true, 
+      message: '로그인 성공!', 
+      user: userWithoutPassword, 
+      token,
+      adminMessage: user.admin_message || null
+    });
   } catch (error) {
     console.error('로그인 오류:', error);
     res.json({ success: false, message: '서버 오류가 발생했습니다.' });
@@ -109,8 +128,18 @@ router.post('/verify', async (req, res) => {
     }
     
     const user = result.rows[0];
+    
+    // 활성 상태 확인
+    if (user.is_active === false) {
+      return res.json({ success: false, message: '계정이 비활성화되었습니다.' });
+    }
+    
     const { password: _, ...userWithoutPassword } = user;
-    res.json({ success: true, user: userWithoutPassword });
+    res.json({ 
+      success: true, 
+      user: userWithoutPassword,
+      adminMessage: user.admin_message || null
+    });
   } catch (error) {
     console.error('토큰 검증 오류:', error);
     res.json({ success: false, message: '서버 오류가 발생했습니다.' });
@@ -130,6 +159,101 @@ router.post('/logout', async (req, res) => {
   } catch (error) {
     console.error('로그아웃 오류:', error);
     res.json({ success: true, message: '로그아웃 되었습니다.' });
+  }
+});
+
+// ==================== 관리자 API ====================
+
+// 전체 사용자 목록 (관리자 전용)
+router.get('/admin/list', async (req, res) => {
+  try {
+    const token = req.headers.authorization;
+    const admin = await getUserByToken(token);
+    
+    if (!admin || !admin.is_admin) {
+      return res.json({ success: false, message: '관리자 권한이 필요합니다.' });
+    }
+    
+    const result = await pool.query(
+      'SELECT id, email, name, plan, is_active, is_admin, created_at, last_login, admin_message FROM users ORDER BY created_at DESC'
+    );
+    
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error('사용자 목록 조회 오류:', error);
+    res.json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 사용자 활성화/비활성화 (관리자 전용)
+router.post('/admin/toggle-active', async (req, res) => {
+  try {
+    const token = req.headers.authorization;
+    const admin = await getUserByToken(token);
+    
+    if (!admin || !admin.is_admin) {
+      return res.json({ success: false, message: '관리자 권한이 필요합니다.' });
+    }
+    
+    const { userId, isActive } = req.body;
+    
+    await pool.query(
+      'UPDATE users SET is_active = $1 WHERE id = $2',
+      [isActive, userId]
+    );
+    
+    res.json({ success: true, message: isActive ? '사용자가 활성화되었습니다.' : '사용자가 비활성화되었습니다.' });
+  } catch (error) {
+    console.error('사용자 상태 변경 오류:', error);
+    res.json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 사용자 메시지 설정 (관리자 전용)
+router.post('/admin/set-message', async (req, res) => {
+  try {
+    const token = req.headers.authorization;
+    const admin = await getUserByToken(token);
+    
+    if (!admin || !admin.is_admin) {
+      return res.json({ success: false, message: '관리자 권한이 필요합니다.' });
+    }
+    
+    const { userId, message } = req.body;
+    
+    await pool.query(
+      'UPDATE users SET admin_message = $1 WHERE id = $2',
+      [message || null, userId]
+    );
+    
+    res.json({ success: true, message: '메시지가 설정되었습니다.' });
+  } catch (error) {
+    console.error('메시지 설정 오류:', error);
+    res.json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 전체 공지 메시지 설정 (관리자 전용)
+router.post('/admin/set-global-message', async (req, res) => {
+  try {
+    const token = req.headers.authorization;
+    const admin = await getUserByToken(token);
+    
+    if (!admin || !admin.is_admin) {
+      return res.json({ success: false, message: '관리자 권한이 필요합니다.' });
+    }
+    
+    const { message } = req.body;
+    
+    await pool.query(
+      'UPDATE users SET admin_message = $1 WHERE is_admin = false',
+      [message || null]
+    );
+    
+    res.json({ success: true, message: '전체 공지가 설정되었습니다.' });
+  } catch (error) {
+    console.error('전체 공지 설정 오류:', error);
+    res.json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 

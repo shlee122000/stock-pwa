@@ -2234,7 +2234,23 @@ function initEventListeners() {
     analyzeUsPatternBtn.addEventListener('click', handleUsPatternAnalysis);
   }
 
+// 관리자 기능
+  var loadUsersBtn = document.getElementById('load-users-btn');
+  if (loadUsersBtn) {
+    loadUsersBtn.addEventListener('click', loadAdminUsers);
+  }
+  
+  var setGlobalBtn = document.getElementById('set-global-message-btn');
+  if (setGlobalBtn) {
+    setGlobalBtn.addEventListener('click', setGlobalMessage);
+  }
+  
+  var clearGlobalBtn = document.getElementById('clear-global-message-btn');
+  if (clearGlobalBtn) {
+    clearGlobalBtn.addEventListener('click', clearGlobalMessage);
+  }
 }
+
 
 
 // ==================== 탭 네비게이션 ====================
@@ -11132,6 +11148,7 @@ async function handleRegister() {
   }
 }
 
+
 // 로그인
 async function handleLogin() {
   var email = document.getElementById('login-email').value.trim();
@@ -11157,11 +11174,18 @@ async function handleLogin() {
       // 로그인 후 데이터 자동 로드
       loadPortfolio();
       loadWatchlist();
+      loadUsPortfolio();
+      loadUsWatchlist();
+      
+      // 관리자 메시지 표시
+      if (result.adminMessage) {
+        setTimeout(function() {
+          alert('📢 관리자 공지\n\n' + result.adminMessage);
+        }, 500);
+      }
       
       alert('환영합니다, ' + currentUser.name + '님!');
-    }
-
-    else {
+    } else {
       alert(result.message || '로그인 실패');
     }
   } catch (error) {
@@ -11169,6 +11193,7 @@ async function handleLogin() {
     alert('서버 오류가 발생했습니다.');
   }
 }
+
 
 // 로그아웃
 async function handleLogout() {
@@ -11230,10 +11255,17 @@ function updateUserUI() {
         '</span>' +
         '<button class="logout-btn" onclick="handleLogout()">로그아웃</button>';
     }
+    
+    // 관리자 메뉴 표시
+    updateAdminMenu();
   } else {
     // 로그아웃 상태
     if (loginBtn) loginBtn.style.display = 'block';
     if (userInfo) userInfo.style.display = 'none';
+    
+    // 관리자 메뉴 숨김
+    var adminMenu = document.getElementById('admin-menu');
+    if (adminMenu) adminMenu.style.display = 'none';
   }
 }
 
@@ -13323,4 +13355,213 @@ function displayBacktestResults(result) {
   
   resultsEl.style.display = 'block';
   resultsEl.scrollIntoView({ behavior: 'smooth' });
+}
+
+
+// ==================== 관리자 기능 ====================
+
+// 관리자 메뉴 표시/숨김
+function updateAdminMenu() {
+  var adminMenu = document.getElementById('admin-menu');
+  if (adminMenu && currentUser && currentUser.is_admin) {
+    adminMenu.style.display = 'block';
+  } else if (adminMenu) {
+    adminMenu.style.display = 'none';
+  }
+}
+
+// 사용자 목록 불러오기
+async function loadAdminUsers() {
+  var container = document.getElementById('admin-users-list');
+  var token = localStorage.getItem('authToken');
+  var searchInput = document.getElementById('admin-user-search');
+  var searchKeyword = searchInput ? searchInput.value.trim().toLowerCase() : '';
+  
+  if (!token) {
+    container.innerHTML = '<p>로그인이 필요합니다.</p>';
+    return;
+  }
+  
+  container.innerHTML = '<p>불러오는 중...</p>';
+  
+  try {
+    var result = await fetch(API_BASE + '/api/users/admin/list', {
+      headers: { 'Authorization': token }
+    }).then(function(res) { return res.json(); });
+    
+    if (!result.success) {
+      container.innerHTML = '<p>' + (result.message || '권한이 없습니다.') + '</p>';
+      return;
+    }
+    
+    var users = result.data;
+    
+    // 검색 필터
+    if (searchKeyword) {
+      users = users.filter(function(user) {
+        return user.name.toLowerCase().includes(searchKeyword) || 
+               user.email.toLowerCase().includes(searchKeyword);
+      });
+    }
+    
+    if (users.length === 0) {
+      container.innerHTML = '<p>검색 결과가 없습니다.</p>';
+      return;
+    }
+    
+    var html = '<table><thead><tr><th>No</th><th>이름</th><th>이메일</th><th>상태</th><th>가입일</th><th>기능</th></tr></thead><tbody>';
+    
+    for (var i = 0; i < users.length; i++) {
+      var user = users[i];
+      var statusClass = user.is_active ? 'positive' : 'negative';
+      var statusText = user.is_active ? '활성' : '비활성';
+      var createdAt = user.created_at ? new Date(user.created_at).toLocaleDateString('ko-KR') : '-';
+      
+      html += '<tr>';
+      html += '<td>' + (i + 1) + '</td>';
+      html += '<td><strong>' + user.name + '</strong>' + (user.is_admin ? ' 👑' : '') + '</td>';
+      html += '<td>' + user.email + '</td>';
+      html += '<td class="' + statusClass + '">' + statusText + '</td>';
+      html += '<td>' + createdAt + '</td>';
+      html += '<td>';
+      if (!user.is_admin) {
+        html += '<button onclick="toggleUserActive(' + user.id + ', ' + !user.is_active + ')" class="' + (user.is_active ? 'btn-danger' : 'btn-primary') + '" style="margin-right:5px;">' + (user.is_active ? '비활성화' : '활성화') + '</button>';
+        html += '<button onclick="openUserMessageModal(' + user.id + ', \'' + user.name + '\', \'' + (user.admin_message || '').replace(/'/g, "\\'") + '\')" class="btn-secondary">메시지</button>';
+      }
+      html += '</td>';
+      html += '</tr>';
+    }
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  } catch (error) {
+    console.error('사용자 목록 오류:', error);
+    container.innerHTML = '<p>오류가 발생했습니다.</p>';
+  }
+}
+
+// 사용자 활성화/비활성화
+async function toggleUserActive(userId, isActive) {
+  var token = localStorage.getItem('authToken');
+  
+  if (!confirm(isActive ? '이 사용자를 활성화하시겠습니까?' : '이 사용자를 비활성화하시겠습니까?')) {
+    return;
+  }
+  
+  try {
+    var result = await fetch(API_BASE + '/api/users/admin/toggle-active', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({ userId: userId, isActive: isActive })
+    }).then(function(res) { return res.json(); });
+    
+    if (result.success) {
+      alert(result.message);
+      loadAdminUsers();
+    } else {
+      alert(result.message || '실패');
+    }
+  } catch (error) {
+    console.error('상태 변경 오류:', error);
+    alert('오류가 발생했습니다.');
+  }
+}
+
+// 사용자 메시지 모달 열기
+function openUserMessageModal(userId, userName, currentMessage) {
+  var message = prompt(userName + '님에게 보낼 메시지:', currentMessage || '');
+  
+  if (message === null) return; // 취소
+  
+  setUserMessage(userId, message);
+}
+
+// 사용자 메시지 설정
+async function setUserMessage(userId, message) {
+  var token = localStorage.getItem('authToken');
+  
+  try {
+    var result = await fetch(API_BASE + '/api/users/admin/set-message', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({ userId: userId, message: message })
+    }).then(function(res) { return res.json(); });
+    
+    if (result.success) {
+      alert('메시지가 설정되었습니다.');
+      loadAdminUsers();
+    } else {
+      alert(result.message || '실패');
+    }
+  } catch (error) {
+    console.error('메시지 설정 오류:', error);
+    alert('오류가 발생했습니다.');
+  }
+}
+
+// 전체 공지 설정
+async function setGlobalMessage() {
+  var message = document.getElementById('admin-global-message').value.trim();
+  var token = localStorage.getItem('authToken');
+  
+  if (!message) {
+    alert('메시지를 입력해주세요.');
+    return;
+  }
+  
+  try {
+    var result = await fetch(API_BASE + '/api/users/admin/set-global-message', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({ message: message })
+    }).then(function(res) { return res.json(); });
+    
+    if (result.success) {
+      alert('전체 공지가 설정되었습니다.');
+    } else {
+      alert(result.message || '실패');
+    }
+  } catch (error) {
+    console.error('전체 공지 설정 오류:', error);
+    alert('오류가 발생했습니다.');
+  }
+}
+
+// 전체 공지 삭제
+async function clearGlobalMessage() {
+  var token = localStorage.getItem('authToken');
+  
+  if (!confirm('전체 공지를 삭제하시겠습니까?')) {
+    return;
+  }
+  
+  try {
+    var result = await fetch(API_BASE + '/api/users/admin/set-global-message', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({ message: null })
+    }).then(function(res) { return res.json(); });
+    
+    if (result.success) {
+      document.getElementById('admin-global-message').value = '';
+      alert('전체 공지가 삭제되었습니다.');
+    } else {
+      alert(result.message || '실패');
+    }
+  } catch (error) {
+    console.error('전체 공지 삭제 오류:', error);
+    alert('오류가 발생했습니다.');
+  }
 }
