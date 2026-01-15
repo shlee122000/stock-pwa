@@ -13016,6 +13016,8 @@ async function runMarketScanner() {
     statusEl.textContent = '스캔 중 오류가 발생했습니다.';
   }
 }
+
+
 // ==================== 스캐너 알림 설정 ====================
 
 // 브라우저 푸시 알림 권한 요청
@@ -13116,20 +13118,22 @@ async function testScannerNotify() {
   }
 }
 
+
+
 // 스캐너 결과 알림 전송
-function sendScannerNotification(buySignals, sellSignals) {
-  const pushNotify = localStorage.getItem('scannerPushNotify') === 'true';
-  const kakaoNotify = localStorage.getItem('scannerKakaoNotify') === 'true';
+async function sendScannerNotification(buySignals, sellSignals) {
+  var pushNotify = localStorage.getItem('scannerPushNotify') === 'true';
+  var kakaoNotify = localStorage.getItem('scannerKakaoNotify') === 'true';
   
   if (!pushNotify && !kakaoNotify) return;
   if (buySignals.length === 0 && sellSignals.length === 0) return;
   
   // 메시지 생성
-  let message = '📡 시장 스캐너 결과\n\n';
+  var message = '📡 시장 스캐너 결과\n\n';
   
   if (buySignals.length > 0) {
     message += '📈 매수 신호:\n';
-    buySignals.slice(0, 5).forEach(stock => {
+    buySignals.slice(0, 5).forEach(function(stock) {
       message += '• ' + stock.name + ' - ' + stock.reasons.join(', ') + '\n';
     });
     message += '\n';
@@ -13137,7 +13141,7 @@ function sendScannerNotification(buySignals, sellSignals) {
   
   if (sellSignals.length > 0) {
     message += '📉 매도 신호:\n';
-    sellSignals.slice(0, 5).forEach(stock => {
+    sellSignals.slice(0, 5).forEach(function(stock) {
       message += '• ' + stock.name + ' - ' + stock.reasons.join(', ') + '\n';
     });
   }
@@ -13152,10 +13156,29 @@ function sendScannerNotification(buySignals, sellSignals) {
   }
   
   // 카카오톡
-  if (kakaoNotify && typeof sendKakaoMessage === 'function') {
-    sendKakaoMessage(message);
+  if (kakaoNotify && Kakao.Auth.getAccessToken()) {
+    try {
+      await Kakao.API.request({
+        url: '/v2/api/talk/memo/default/send',
+        data: {
+          template_object: {
+            object_type: 'text',
+            text: message,
+            link: {
+              web_url: 'https://stock-pwa.vercel.app',
+              mobile_web_url: 'https://stock-pwa.vercel.app'
+            },
+            button_title: '앱에서 확인'
+          }
+        }
+      });
+      console.log('카카오톡 스캐너 알림 전송 성공');
+    } catch (error) {
+      console.error('카카오톡 스캐너 알림 실패:', error);
+    }
   }
 }
+
 
 
 // ==================== 자동 스캔 ====================
