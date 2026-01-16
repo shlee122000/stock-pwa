@@ -12704,6 +12704,26 @@ function kakaoLogout() {
     }
 }
 
+
+// 카카오 연결 해제 (토큰 강제 초기화)
+function kakaoReset() {
+  if (!confirm('카카오톡 연결을 완전히 해제하시겠습니까?\n다시 로그인해야 알림을 받을 수 있습니다.')) {
+    return;
+  }
+  
+  // 토큰 초기화
+  Kakao.Auth.setAccessToken(null);
+  localStorage.removeItem('kakaoAccessToken');
+  
+  // UI 업데이트
+  document.getElementById('kakaoLoginBtn').style.display = 'inline-block';
+  document.getElementById('kakaoLogoutBtn').style.display = 'none';
+  document.getElementById('kakaoResetBtn').style.display = 'none';
+  document.getElementById('kakaoUserStatus').textContent = '';
+  
+  alert('카카오톡 연결이 해제되었습니다.\n다시 로그인해주세요.');
+}
+
 // OAuth 콜백 처리 (인가코드로 토큰 받기)
 async function handleKakaoCallback() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -12769,17 +12789,20 @@ function checkKakaoLoginStatus() {
 function updateKakaoUI(isLoggedIn, userInfo = null) {
     const loginBtn = document.getElementById('kakaoLoginBtn');
     const logoutBtn = document.getElementById('kakaoLogoutBtn');
+    const resetBtn = document.getElementById('kakaoResetBtn');
     const userStatus = document.getElementById('kakaoUserStatus');
     const notificationSettings = document.getElementById('notificationSettings');
     
     if (isLoggedIn && userInfo) {
         if (loginBtn) loginBtn.style.display = 'none';
         if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+        if (resetBtn) resetBtn.style.display = 'inline-flex';
         if (userStatus) userStatus.textContent = `${userInfo.properties?.nickname || '사용자'}님 연동됨`;
         if (notificationSettings) notificationSettings.style.display = 'block';
     } else {
         if (loginBtn) loginBtn.style.display = 'inline-flex';
         if (logoutBtn) logoutBtn.style.display = 'none';
+        if (resetBtn) resetBtn.style.display = 'none';
         if (userStatus) userStatus.textContent = '';
         if (notificationSettings) notificationSettings.style.display = 'none';
     }

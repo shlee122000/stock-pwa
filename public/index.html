@@ -16,7 +16,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <!-- CSS -->
-  <link rel="stylesheet" href="/css/styles.css?v=66">
+  <link rel="stylesheet" href="/css/styles.css?v=67">
 </head>
 <body>
   <div class="app-container">
@@ -109,9 +109,14 @@
         💬 카카오 로그인
       </button>
       <button id="kakaoLogoutBtn" onclick="kakaoLogout()" 
-              style="display: none; background: #555; color: #fff; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer;">
+        style="display: none; background: #555; color: #fff; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer;">
         로그아웃
       </button>
+      <button id="kakaoResetBtn" onclick="kakaoReset()" 
+              style="display: none; background: #ef4444; color: #fff; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; margin-left: 5px;">
+        🔄 연결 해제
+      </button>
+<span id="kakaoUserStatus" style="color: #4ade80; margin-left: 10px;"></span>
       <span id="kakaoUserStatus" style="color: #4ade80; margin-left: 10px;"></span>
     </div>
     
@@ -2843,7 +2848,7 @@
   </div>
   
   <!-- JavaScript -->
-    <script src="/js/app.js?v=66"></script>
+    <script src="/js/app.js?v=67"></script>
   
 
   <!--  
@@ -2938,7 +2943,7 @@
 <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
 
 <!-- 2. 내부 유틸리티 -->
-<script src="/js/cache-manager.js?v=66"></script>
+<script src="/js/cache-manager.js?v=67"></script>
 
   
 </body>
