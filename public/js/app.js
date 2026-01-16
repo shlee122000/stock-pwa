@@ -13133,7 +13133,7 @@ async function sendScannerNotification(buySignals, sellSignals) {
   
   if (buySignals.length > 0) {
     message += '📈 매수 신호:\n';
-    buySignals.slice(0, 5).forEach(function(stock) {
+    buySignals.slice(0, 10).forEach(function(stock) {
       message += '• ' + stock.name + ' - ' + stock.reasons.join(', ') + '\n';
     });
     message += '\n';
@@ -13141,7 +13141,7 @@ async function sendScannerNotification(buySignals, sellSignals) {
   
   if (sellSignals.length > 0) {
     message += '📉 매도 신호:\n';
-    sellSignals.slice(0, 5).forEach(function(stock) {
+    sellSignals.slice(0, 10).forEach(function(stock) {
       message += '• ' + stock.name + ' - ' + stock.reasons.join(', ') + '\n';
     });
   }
