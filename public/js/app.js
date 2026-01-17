@@ -10974,6 +10974,7 @@ function initNotificationContainer() {
   }
 }
 
+
 // 알림 팝업 표시
 function showNotification(options, message) {
   // 문자열 2개로 호출된 경우 객체로 변환
@@ -11020,6 +11021,9 @@ function showNotification(options, message) {
     });
   }
   
+  // 카카오톡 알림 전송
+  sendPortfolioKakaoAlert(options);
+  
   // 자동 닫기 (10초 후)
   setTimeout(function() {
     if (popup.parentNode) {
@@ -11032,6 +11036,47 @@ function showNotification(options, message) {
     }
   }, 10000);
 }
+
+
+// 포트폴리오 알림 카카오톡 전송
+async function sendPortfolioKakaoAlert(options) {
+  // 카카오톡 알림 설정 확인
+  var settings = JSON.parse(localStorage.getItem('kakaoNotificationSettings') || '{}');
+  
+  // 목표가/손절가 알림 설정 확인
+  if (options.type === 'profit' && !settings.priceTarget) return;
+  if (options.type === 'loss' && !settings.priceTarget) return;
+  
+  // 카카오 로그인 확인
+  if (!Kakao.Auth.getAccessToken()) return;
+  
+  try {
+    var icon = options.type === 'profit' ? '🎯' : options.type === 'loss' ? '🛑' : '🔔';
+    var message = icon + ' ' + (options.title || '알림') + '\n\n';
+    message += (options.stockName || '') + '\n';
+    message += (options.message || '');
+    
+    await Kakao.API.request({
+      url: '/v2/api/talk/memo/default/send',
+      data: {
+        template_object: {
+          object_type: 'text',
+          text: message,
+          link: {
+            web_url: 'https://stock-pwa.vercel.app',
+            mobile_web_url: 'https://stock-pwa.vercel.app'
+          },
+          button_title: '앱에서 확인'
+        }
+      }
+    });
+    console.log('포트폴리오 카카오톡 알림 전송 성공');
+  } catch (error) {
+    console.error('포트폴리오 카카오톡 알림 실패:', error);
+  }
+}
+
+
 
 // 알림 닫기
 function closeNotification(btn) {
