@@ -1,3 +1,5 @@
+// 🔥🔥🔥 VERSION 2025-01-18-FINAL 🔥🔥🔥
+console.log('🔥 app.js 로드 완료 - 버전: 2025-01-18-FINAL');
 // ========== 카카오 SDK 초기화 ==========
 const KAKAO_JS_KEY = '0b0ac974f6bfe8e8a63ee07356db143c';
 const KAKAO_REDIRECT_URI = 'https://stock-pwa.vercel.app/oauth';
@@ -111,7 +113,7 @@ let alertList = JSON.parse(localStorage.getItem('alertList')) || [];
 let monitorInterval = null;
 
 // 미국 포트폴리오
-let usPortfolio = JSON.parse(localStorage.getItem('usPortfolio')) || [];
+let usPortfolio = [];
 let usAlertList = JSON.parse(localStorage.getItem('usAlertList')) || [];
 
 
@@ -1972,17 +1974,25 @@ function createATRChart(containerId, data) {
 // ==================== 초기화 ====================
 document.addEventListener('DOMContentLoaded', async function() {
   initTabs(); 
-  loadExchangeRate();          // ← 먼저 실행!
-  initEventListeners();  // ← 나중에 실행
+  loadExchangeRate();
+  initEventListeners();
+  
   // 로그인 상태 먼저 복원
   await verifyToken();
+  
   loadWatchlist();
   loadUsWatchlist();
-  loadPortfolio();
+  
+  // 한국 포트폴리오
+  await loadPortfolio();
+  updateAlertStockSelect();
+  
+  // 미국 포트폴리오
+  await loadUsPortfolio();
+  updateUsAlertStockSelect();  // ← 이 줄 추가! ⭐
+  
   loadDashboard();
   loadAlertList();
-  updateAlertStockSelect();
-  loadUsPortfolio();
   loadUsAlertList();
   loadAiThemeList();
   loadScannerNotifySettings();
@@ -1993,6 +2003,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   // 자동 로그인 검증
   verifyToken();
 });
+
 
 // 검색 debounce용 타이머
 var searchDebounceTimer = null;
@@ -3849,7 +3860,6 @@ async function loadPortfolio() {
 }
 
 
-
 async function removeFromPortfolio(id) {
   var token = localStorage.getItem('authToken');
   if (!token) {
@@ -5158,6 +5168,7 @@ async function handleAddUsPortfolio() {
 }
 
 async function loadUsPortfolio() {
+  console.log('🔥🔥🔥 loadUsPortfolio 시작!');
   var container = document.getElementById('us-portfolio-list');
   var summaryContainer = document.getElementById('us-portfolio-summary');
   
@@ -5185,7 +5196,23 @@ async function loadUsPortfolio() {
     }
     
     var portfolioData = result.data;
-    
+
+    // 전역 usPortfolio 변수 업데이트 (알림 드롭다운용)
+    usPortfolio = portfolioData.map(function(item) {
+      return {
+        symbol: item.stock_code,
+        name: item.stock_name || item.stock_code,
+        qty: item.quantity,
+        price: item.buy_price
+      };
+    });
+
+    console.log('✅ usPortfolio 업데이트 완료:', usPortfolio);
+    console.log('✅ 길이:', usPortfolio.length);
+
+    // 알림 드롭다운 업데이트 ← 여기서만 호출!
+    updateUsAlertStockSelect();
+
     var html = '<table><thead><tr><th>종목</th><th>수량</th><th>매수가</th><th>현재가</th><th>평가금</th><th>수익</th><th>기능</th></tr></thead><tbody>';
     
     var totalInvest = 0;
@@ -5234,7 +5261,6 @@ async function loadUsPortfolio() {
     summaryHtml += '</div>';
     summaryContainer.innerHTML = summaryHtml;
     
-    updateUsAlertStockSelect();
   } catch (error) {
     console.error('미국 포트폴리오 로드 오류:', error);
     container.innerHTML = '<p>포트폴리오를 불러올 수 없습니다.</p>';
