@@ -13681,4 +13681,4 @@ async function clearGlobalMessage() {
     console.error('전체 공지 삭제 오류:', error);
     alert('오류가 발생했습니다.');
   }
-}
+}" " 
