@@ -1,5 +1,5 @@
-// 🔥🔥🔥 VERSION 2025-01-18-FINAL 🔥🔥🔥
-console.log('🔥 app.js 로드 완료 - 버전: 2025-01-18-FINAL');
+// 🔥🔥🔥 VERSION 2025-01-19-FIXED 🔥🔥🔥
+console.log('🔥 app.js 로드 완료 - 버전: 2025-01-19-FIXED');
 // ========== 카카오 SDK 초기화 ==========
 const KAKAO_JS_KEY = '0b0ac974f6bfe8e8a63ee07356db143c';
 const KAKAO_REDIRECT_URI = 'https://stock-pwa.vercel.app/oauth';
@@ -5564,7 +5564,13 @@ function loadUsAlertList() {
       targetsHtml = item.targets.map(function(t) {
         var icon = t.type === 'profit' ? '🎯' : '🛑';
         var className = t.type === 'profit' ? 'positive' : 'negative';
-        var priceStr = t.price ? '$' + t.price.toFixed(2) : '--';
+        
+        // 안전한 price 처리
+        var priceStr = '--';
+        if (t.price && !isNaN(t.price)) {
+          priceStr = '$' + parseFloat(t.price).toFixed(2);
+        }
+        
         var percentStr = t.percent ? ((t.percent > 0 ? '+' : '') + t.percent + '%') : '';
         return '<span class="' + className + '">' + icon + ' ' + priceStr + ' (' + percentStr + ')</span>';
       }).join('<br>');
@@ -5579,8 +5585,17 @@ function loadUsAlertList() {
       statusHtml = '<span>⏳ 대기중</span>';
     }
     
-    var buyPriceStr = item.buyPrice ? '$' + item.buyPrice.toFixed(2) : '--';
-    var currentPriceStr = item.currentPrice ? '$' + item.currentPrice.toFixed(2) : '--';
+    // 안전한 buyPrice 처리
+    var buyPriceStr = '--';
+    if (item.buyPrice && !isNaN(item.buyPrice)) {
+      buyPriceStr = '$' + parseFloat(item.buyPrice).toFixed(2);
+    }
+    
+    // 안전한 currentPrice 처리
+    var currentPriceStr = '--';
+    if (item.currentPrice && !isNaN(item.currentPrice)) {
+      currentPriceStr = '$' + parseFloat(item.currentPrice).toFixed(2);
+    }
     
     html += '<tr>';
     html += '<td><strong>' + (item.name || item.symbol) + '</strong><br><small>' + item.symbol + '</small></td>';
@@ -5595,6 +5610,7 @@ function loadUsAlertList() {
   html += '</tbody></table>';
   container.innerHTML = html;
 }
+
 
 function removeUsAlert(index) {
   if (confirm('이 알림을 삭제하시겠습니까?')) {
@@ -5665,10 +5681,18 @@ async function checkUsAlerts() {
             
             var message = item.name + ' (' + item.symbol + ')\n';
             message += target.type === 'profit' ? '🎯 목표가 도달!' : '🛑 손절가 도달!';
-            message += '\n현재가: $' + currentPrice.toFixed(2);
-            message += '\n설정가: $' + target.price.toFixed(2);
+            message += '\n현재가: $' + parseFloat(currentPrice).toFixed(2);
+            message += '\n설정가: $' + parseFloat(target.price).toFixed(2);
             
             alert(message);
+
+            // 카카오톡 알림 전송
+            sendPortfolioKakaoAlert({
+              title: target.type === 'profit' ? '🇺🇸 목표가 도달!' : '🇺🇸 손절가 도달!',
+              stockName: item.name + ' (' + item.symbol + ')',
+              message: '현재가: $' + parseFloat(currentPrice).toFixed(2) + '\n설정가: $' + parseFloat(target.price).toFixed(2),
+              type: target.type
+            });
             
             if ('Notification' in window && Notification.permission === 'granted') {
               new Notification('미국 주식 알림', { body: message });
