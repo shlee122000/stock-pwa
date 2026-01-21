@@ -1994,6 +1994,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   loadDashboard();
   loadAlertList();
   loadUsAlertList();
+  await loadMonitoringStatus();  // ← 추가!
   loadAiThemeList();
   loadScannerNotifySettings();
   
@@ -4390,6 +4391,9 @@ function startMonitoring() {
   
   // 선택한 간격으로 체크
   monitorInterval = setInterval(checkAlerts, intervalMinutes * 60 * 1000);
+
+  // DB에 저장
+  saveMonitoringStatus('kr', true, intervalMinutes);  // ← 추가!
 }
 
 
@@ -4402,7 +4406,11 @@ function stopMonitoring() {
   document.getElementById('start-monitor-btn').style.display = 'inline-block';
   document.getElementById('stop-monitor-btn').style.display = 'none';
   document.getElementById('monitor-status').textContent = '모니터링 중지됨';
+
+  // DB에 저장
+  saveMonitoringStatus('kr', false, 1);  // ← 추가!
 }
+
 
 async function checkAlerts() {
   var now = new Date().toLocaleTimeString();
@@ -5640,6 +5648,9 @@ function startUsMonitoring() {
   checkUsAlerts();
   
   usMonitorInterval = setInterval(checkUsAlerts, intervalMinutes * 60 * 1000);
+
+  // DB에 저장
+  saveMonitoringStatus('us', true, intervalMinutes);  // ← 추가!
 }
 
 function stopUsMonitoring() {
@@ -5651,6 +5662,9 @@ function stopUsMonitoring() {
   document.getElementById('us-start-monitor-btn').style.display = 'inline-block';
   document.getElementById('us-stop-monitor-btn').style.display = 'none';
   document.getElementById('us-monitor-status').textContent = '모니터링 중지됨';
+
+  // DB에 저장
+  saveMonitoringStatus('us', false, 10);  // ← 추가!
 }
 
 async function checkUsAlerts() {
@@ -5676,8 +5690,8 @@ async function checkUsAlerts() {
             triggered = true;
           }
           
-          if (triggered && !item.triggered.includes(target.price)) {
-            usAlertList[i].triggered.push(target.price);
+          if (triggered) {  // ← !item.triggered.includes(target.price) 제거!
+            // usAlertList[i].triggered.push(target.price);  // ← 주석 처리!
             
             var message = item.name + ' (' + item.symbol + ')\n';
             message += target.type === 'profit' ? '🎯 목표가 도달!' : '🛑 손절가 도달!';
@@ -13499,8 +13513,78 @@ function displayBacktestResults(result) {
 }
 
 
-// ==================== 관리자 기능 ====================
+// ==================== 모니터링 상태 DB 관리 ====================
 
+// DB에서 모니터링 상태 가져오기
+async function loadMonitoringStatus() {
+  try {
+    const userId = localStorage.getItem('user_id');
+    if (!userId) return;
+    
+    const result = await apiCall('/api/users/monitoring-status?user_id=' + userId);
+    
+    if (result.success && result.data) {
+      // 한국 상태 복원
+      if (result.data.kr && result.data.kr.active) {
+        document.getElementById('monitor-interval').value = result.data.kr.interval || 1;
+        document.getElementById('start-monitor-btn').style.display = 'none';
+        document.getElementById('stop-monitor-btn').style.display = 'inline-block';
+        document.getElementById('monitor-status').textContent = '모니터링 중... (' + result.data.kr.interval + '분 간격)';
+        
+        // 실제 모니터링 시작
+        checkAlerts();
+        monitorInterval = setInterval(checkAlerts, result.data.kr.interval * 60 * 1000);
+      }
+      
+      // 미국 상태 복원
+      if (result.data.us && result.data.us.active) {
+        document.getElementById('us-monitor-interval').value = result.data.us.interval || 10;
+        document.getElementById('us-start-monitor-btn').style.display = 'none';
+        document.getElementById('us-stop-monitor-btn').style.display = 'inline-block';
+        document.getElementById('us-monitor-status').textContent = '모니터링 중... (' + result.data.us.interval + '분 간격)';
+        
+        // 실제 모니터링 시작
+        checkUsAlerts();
+        usMonitorInterval = setInterval(checkUsAlerts, result.data.us.interval * 60 * 1000);
+      }
+    }
+  } catch (error) {
+    console.error('모니터링 상태 로드 오류:', error);
+  }
+}
+
+// DB에 모니터링 상태 저장
+async function saveMonitoringStatus(market, active, interval) {
+  try {
+    const userId = localStorage.getItem('user_id');
+    if (!userId) return;
+    
+    // 현재 상태 가져오기
+    const currentResult = await apiCall('/api/users/monitoring-status?user_id=' + userId);
+    const currentStatus = currentResult.success ? currentResult.data : {
+      kr: { active: false, interval: 1 },
+      us: { active: false, interval: 10 }
+    };
+    
+    // 해당 마켓 상태 업데이트
+    currentStatus[market] = { active: active, interval: interval };
+    
+    // DB에 저장
+    await apiCall('/api/users/monitoring-status', {
+      method: 'PUT',
+      body: JSON.stringify({
+        user_id: parseInt(userId),
+        monitoring_status: currentStatus
+      })
+    });
+  } catch (error) {
+    console.error('모니터링 상태 저장 오류:', error);
+  }
+}
+
+
+
+// ==================== 관리자 기능 ====================
 // 관리자 메뉴 표시/숨김
 function updateAdminMenu() {
   var adminMenu = document.getElementById('admin-menu');

@@ -257,4 +257,62 @@ router.post('/admin/set-global-message', async (req, res) => {
   }
 });
 
+
+// 모니터링 상태 조회
+router.get('/monitoring-status', async (req, res) => {
+  try {
+    const { user_id } = req.query;
+    
+    if (!user_id) {
+      return res.json({ success: false, message: 'user_id is required' });
+    }
+    
+    const result = await pool.query(
+      'SELECT monitoring_status FROM users WHERE id = $1',
+      [user_id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.json({ success: false, message: 'User not found' });
+    }
+    
+    res.json({ 
+      success: true, 
+      data: result.rows[0].monitoring_status || {
+        kr: { active: false, interval: 1 },
+        us: { active: false, interval: 10 }
+      }
+    });
+  } catch (error) {
+    console.error('모니터링 상태 조회 오류:', error);
+    res.json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 모니터링 상태 업데이트
+router.put('/monitoring-status', async (req, res) => {
+  try {
+    const { user_id, monitoring_status } = req.body;
+    
+    if (!user_id || !monitoring_status) {
+      return res.json({ success: false, message: 'Missing required fields' });
+    }
+    
+    const result = await pool.query(
+      'UPDATE users SET monitoring_status = $1 WHERE id = $2 RETURNING monitoring_status',
+      [JSON.stringify(monitoring_status), user_id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.json({ success: false, message: 'User not found' });
+    }
+    
+    res.json({ success: true, data: result.rows[0].monitoring_status });
+  } catch (error) {
+    console.error('모니터링 상태 업데이트 오류:', error);
+    res.json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+
 module.exports = router;
