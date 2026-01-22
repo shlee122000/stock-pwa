@@ -15,6 +15,7 @@ function initKakao() {
 // 페이지 로드 시 초기화
 document.addEventListener('DOMContentLoaded', () => {
     initKakao();
+    handleKakaoCallback();  // ⭐ 이 줄 추가!
     checkKakaoLoginStatus();
 });
 
